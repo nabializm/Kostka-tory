@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Laboratorium Kabalisty</title>
+<style>
+:root{--bg:#0c0d10;--p:#15171d;--p2:#1b1e26;--hl:#2b2e37;--brass:#c9a15a;--vio:#8b7fd6;--fg:#e9e5da;--mut:#8a8d97;--ok:#7fae8a}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+body{display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+header{padding:8px 12px 0;display:flex;align-items:baseline;gap:10px}
+h1{margin:0;font-size:17px;font-weight:600;letter-spacing:.06em;color:var(--brass)}
+header span{color:var(--mut);font-size:12px}
+nav{display:flex;gap:6px;padding:8px 10px;overflow-x:auto;border-bottom:1px solid var(--hl)}
+button,input,select,textarea{font:inherit;color:var(--fg);background:var(--p2);border:1px solid var(--hl);border-radius:18px;padding:7px 14px;max-width:100%}
+button{cursor:pointer;white-space:nowrap}button:hover{border-color:var(--brass)}
+nav button.on{background:var(--vio);color:#100e1c;border-color:var(--vio);font-weight:600}
+.pane{display:none;flex:1;min-height:0}.pane.on{display:block}
+.pane.fr{overflow:hidden}.pane.sc{overflow:auto;padding:14px;max-width:760px;width:100%;margin:0 auto}
+iframe{width:100%;height:100%;border:0;background:var(--bg);display:block}
+.pn{background:var(--p);border:1px solid var(--hl);border-radius:12px;padding:14px;margin-bottom:12px}
+.pn h2{margin:0 0 8px;font-size:15px;font-weight:500;color:var(--brass)}
+.m{color:var(--mut);font-size:12.5px}
+input[type=text]{border-radius:8px;width:100%}textarea{border-radius:8px;width:100%;min-height:70px}
+#gw{direction:rtl;font-size:24px;font-family:"Frank Ruhl Libre",serif}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+table{width:100%;border-collapse:collapse;font-size:14px}td,th{padding:6px;border-bottom:1px solid var(--hl);text-align:left}
+td.v{font-family:ui-monospace,Menlo,monospace;color:var(--brass);font-size:17px}
+.chip{display:inline-block;direction:rtl;font-size:19px;padding:2px 9px;margin:3px;border:1px solid var(--hl);border-radius:8px;cursor:pointer;background:var(--p2)}
+.chip small{direction:ltr;color:var(--mut);font-size:11px;margin-left:4px}
+.le{font-size:12.5px;border-bottom:1px solid var(--hl);padding:4px 0}.le b{color:var(--vio);font-weight:500}
+</style></head><body>
+<header><h1>LABORATORIUM KABALISTY</h1><span>Kostka Tory · NVMEROKLEIΔON · gematria · dziennik</span></header>
+<nav id="nav">
+<button data-t="cube" class="on">Kostka Tory</button><button data-t="nvm">NVMEROKLEIΔON</button><button data-t="gem">Gematria</button><button data-t="log">Dziennik</button>
+</nav>
+<div class="pane fr on" id="p-cube"><iframe id="fc" src="index.html" title="Kostka Tory"></iframe></div>
+<div class="pane fr" id="p-nvm"><iframe id="fn" title="NVMEROKLEIΔON"></iframe></div>
+<div class="pane sc" id="p-gem">
+ <div class="pn"><h2>Kalkulator gematrii</h2>
+  <div class="m">Wpisz słowo po hebrajsku (z nikudem lub bez). Wartości liczone pięcioma metodami.</div>
+  <input type="text" id="gw" dir="rtl" placeholder="בראשית" aria-label="słowo hebrajskie">
+  <table id="gt" style="margin-top:8px"></table>
+  <div class="row"><button id="gc">Szukaj w kostce</button><button id="gn">Do NVMEROKLEIΔON</button></div>
+ </div>
+ <div class="pn"><h2>Inne formy o tej samej wartości w Torze</h2>
+  <div class="row"><select id="gm"><option value="std">Hechrechi (standard)</option><option value="gad">Gadol (500–900)</option><option value="ord">Ordinal</option><option value="kat">Katan</option></select></div>
+  <div class="m" id="geq">Wpisz słowo powyżej.</div><div id="gl"></div>
+ </div>
+</div>
+<div class="pane sc" id="p-log">
+ <div class="pn"><h2>Dziennik laboratoryjny</h2>
+  <div class="m">Zapisuje się automatycznie przy przejściach między narzędziami. Dopisz własne obserwacje. Dane zostają w tej przeglądarce.</div>
+  <textarea id="note" placeholder="Obserwacja…"></textarea>
+  <div class="row"><button id="na">Dodaj notatkę</button><button id="ne">Pobierz jako .txt</button><button id="nc">Wyczyść</button></div>
+  <div id="ll"></div></div>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const TABS=['cube','nvm','gem','log'];
+function go(t){TABS.forEach(x=>{$('p-'+x).classList.toggle('on',x===t);document.querySelector('[data-t="'+x+'"]').classList.toggle('on',x===t)});
+ if(t==='nvm'&&!$('fn').getAttribute('src'))$('fn').src='nvmerokleion.html';if(t==='log')showLog()}
+$('nav').onclick=e=>{const b=e.target.closest('button');if(b)go(b.dataset.t)};
+/* dziennik */
+let LOG=[];try{LOG=JSON.parse(localStorage.getItem('lab_log')||'[]')}catch(e){}
+function save(){try{localStorage.setItem('lab_log',JSON.stringify(LOG))}catch(e){}}
+function log(msg){LOG.push({t:new Date().toLocaleString('pl-PL'),m:msg});save()}
+function showLog(){$('ll').innerHTML=LOG.slice().reverse().map(o=>'<div class="le"><b>'+o.t+'</b> '+o.m.replace(/</g,'&lt;')+'</div>').join('')||'<div class="m">Pusto.</div>'}
+$('na').onclick=()=>{const v=$('note').value.trim();if(!v)return;log('Notatka: '+v);$('note').value='';showLog()};
+$('nc').onclick=()=>{if(confirm('Wyczyścić cały dziennik?')){LOG=[];save();showLog()}};
+$('ne').onclick=()=>{const b=new Blob([LOG.map(o=>o.t+'  '+o.m).join('\n')],{type:'text/plain;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='dziennik-laboratorium.txt';a.click()};
+/* most: kostka -> NVMEROKLEIΔON */
+let pend=null;const fn=$('fn');
+function run(o){try{const d=fn.contentWindow.document;d.getElementById('input').value=o.text;d.getElementById('analyzeBtn').click()}
+ catch(e){alert('Nie udało się wpisać tekstu do silnika. Czy plik nvmerokleion.html jest w repozytorium? ('+e.message+')')}}
+fn.onload=()=>{fn.dataset.ok=1;if(pend){run(pend);pend=null}};
+function toNvm(text,label){log('Do NVMEROKLEIΔON: '+label+' ('+text.length+' liter)');go('nvm');if(fn.dataset.ok)run({text}); else pend={text}}
+function toCube(word){log('Szukanie w kostce: '+word);go('cube');$('fc').contentWindow.postMessage({kind:'search',word},location.origin)}
+addEventListener('message',e=>{if(e.origin!==location.origin)return;const d=e.data||{};if(d.kind==='nvm'&&d.text)toNvm(d.text,d.label||'')});
+try{const p=localStorage.getItem('nvm_pending');if(p){localStorage.removeItem('nvm_pending');const o=JSON.parse(p);toNvm(o.text,o.label)}}catch(e){}
+/* gematria */
+const V={א:1,ב:2,ג:3,ד:4,ה:5,ו:6,ז:7,ח:8,ט:9,י:10,כ:20,ל:30,מ:40,נ:50,ס:60,ע:70,פ:80,צ:90,ק:100,ר:200,ש:300,ת:400,ך:20,ם:40,ן:50,ף:80,ץ:90};
+const FG={ך:500,ם:600,ן:700,ף:800,ץ:900},SOF={ך:'כ',ם:'מ',ן:'נ',ף:'פ',ץ:'צ'};
+const A1='אבגדהוזחטיכלמנסעפצקרשת',A2='תשרקצפעסנמלכיטחזוהדגבא';
+const clean=s=>[...s].filter(c=>V[c]).join('');
+const M={std:w=>[...w].reduce((a,c)=>a+V[c],0),gad:w=>[...w].reduce((a,c)=>a+(FG[c]||V[c]),0),
+ ord:w=>[...w].reduce((a,c)=>{const n=V[SOF[c]||c];return a+(n<=9?n:n<=90?n/10+9:n/100+18)},0),
+ kat:w=>[...w].reduce((a,c)=>{let n=V[c];while(n>9)n=[...String(n)].reduce((p,d)=>p+ +d,0);return a+n},0),
+ atb:w=>[...w].reduce((a,c)=>a+V[A2[A1.indexOf(SOF[c]||c)]],0)};
+let FORMS=null;
+function gem(){const w=clean($('gw').value);
+ $('gt').innerHTML=w?[['Hechrechi (standard)','std'],['Gadol (500–900)','gad'],['Ordinal','ord'],['Katan','kat'],['Atbash','atb']].map(r=>'<tr><td>'+r[0]+'</td><td class="v">'+M[r[1]](w)+'</td></tr>').join('')+'<tr><td>Liter</td><td class="v">'+w.length+'</td></tr>':'';
+ eq(w)}
+async function eq(w){const el=$('geq'),l=$('gl');l.innerHTML='';if(!w){el.textContent='Wpisz słowo powyżej.';return}
+ if(!FORMS){el.textContent='Wczytuję słownik Tory…';try{const r=await fetch('torah_words.csv');if(!r.ok)throw 0;const t=(await r.text()).split('\n');FORMS=new Map();
+  for(let i=1;i<t.length;i++){const w2=t[i].split(',')[6];if(w2)FORMS.set(w2,(FORMS.get(w2)||0)+1)}}catch(e){el.textContent='Brak pliku torah_words.csv w repozytorium (opcjonalny).';return}}
+ const m=$('gm').value,v=M[m](w),res=[];FORMS.forEach((n,f)=>{if(f!==w&&M[m](f)===v)res.push([f,n])});res.sort((a,b)=>b[1]-a[1]);
+ el.textContent='Wartość '+v+': '+res.length+' innych form w Torze (najczęstsze pierwsze, do 60). Dotknij formy, aby ją wczytać.';
+ l.innerHTML=res.slice(0,60).map(r=>'<span class="chip" data-w="'+r[0]+'">'+r[0]+'<small>'+r[1]+'×</small></span>').join('')}
+$('gw').oninput=gem;$('gm').onchange=gem;
+$('gl').onclick=e=>{const c=e.target.closest('.chip');if(c){$('gw').value=c.dataset.w;gem()}};
+$('gc').onclick=()=>{const w=clean($('gw').value);if(w.length>1)toCube(w)};
+$('gn').onclick=()=>{const w=clean($('gw').value);if(w.length>1)toNvm(w,'słowo '+w)};
+</script></body></html>

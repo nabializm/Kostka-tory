@@ -31,16 +31,17 @@ td.v{font-family:ui-monospace,Menlo,monospace;color:var(--brass);font-size:17px}
 </style></head><body>
 <header><h1>LABORATORIUM KABALISTY</h1><span>Kostka Tory · NVMEROKLEIΔON · gematria · dziennik</span></header>
 <nav id="nav">
-<button data-t="cube" class="on">Kostka Tory</button><button data-t="nvm">NVMEROKLEIΔON</button><button data-t="gem">Gematria</button><button data-t="log">Dziennik</button>
+<button data-t="cube" class="on">Kostka Tory</button><button data-t="nvm">NVMEROKLEIΔON</button><button data-t="gem">Gematria</button><button data-t="col">Collatz × Ulam</button><button data-t="log">Dziennik</button>
 </nav>
 <div class="pane fr on" id="p-cube"><iframe id="fc" src="index.html" title="Kostka Tory"></iframe></div>
 <div class="pane fr" id="p-nvm"><iframe id="fn" title="NVMEROKLEIΔON"></iframe></div>
+<div class="pane fr" id="p-col"><iframe id="fo" title="Collatz × Ulam"></iframe></div>
 <div class="pane sc" id="p-gem">
  <div class="pn"><h2>Kalkulator gematrii</h2>
   <div class="m">Wpisz słowo po hebrajsku (z nikudem lub bez). Wartości liczone pięcioma metodami.</div>
   <input type="text" id="gw" dir="rtl" placeholder="בראשית" aria-label="słowo hebrajskie">
   <table id="gt" style="margin-top:8px"></table>
-  <div class="row"><button id="gc">Szukaj w kostce</button><button id="gn">Do NVMEROKLEIΔON</button></div>
+  <div class="row"><button id="gc">Szukaj w kostce</button><button id="gn">Do NVMEROKLEIΔON</button><button id="gk">Do Collatz × Ulam (n = wartość)</button></div>
  </div>
  <div class="pn"><h2>Inne formy o tej samej wartości w Torze</h2>
   <div class="row"><select id="gm"><option value="std">Hechrechi (standard)</option><option value="gad">Gadol (500–900)</option><option value="ord">Ordinal</option><option value="kat">Katan</option></select></div>
@@ -56,9 +57,9 @@ td.v{font-family:ui-monospace,Menlo,monospace;color:var(--brass);font-size:17px}
 </div>
 <script>
 const $=id=>document.getElementById(id);
-const TABS=['cube','nvm','gem','log'];
+const TABS=['cube','nvm','col','gem','log'];
 function go(t){TABS.forEach(x=>{$('p-'+x).classList.toggle('on',x===t);document.querySelector('[data-t="'+x+'"]').classList.toggle('on',x===t)});
- if(t==='nvm'&&!$('fn').getAttribute('src'))$('fn').src='nvmerokleion.html';if(t==='log')showLog()}
+ if(t==='nvm'&&!$('fn').getAttribute('src'))$('fn').src='nvmerokleion.html';if(t==='col'&&!$('fo').getAttribute('src'))$('fo').src='collatz-ulam.html';if(t==='log')showLog()}
 $('nav').onclick=e=>{const b=e.target.closest('button');if(b)go(b.dataset.t)};
 /* dziennik */
 let LOG=[];try{LOG=JSON.parse(localStorage.getItem('lab_log')||'[]')}catch(e){}
@@ -78,8 +79,17 @@ fn.onload=()=>{let ok=false;try{ok=!!fn.contentDocument.getElementById('input')}
  if(!ok){fn.dataset.ok='';pend=null;alert('Nie znaleziono silnika. W repozytorium musi być plik nvmerokleion.html (lub nvmerokleidon.html) z kodem NVMEROKLEIΔON.');return}
  fn.dataset.ok=1;if(pend){run(pend);pend=null}};
 function toNvm(text,label){log('Do NVMEROKLEIΔON: '+label+' ('+text.length+' liter)');go('nvm');if(fn.dataset.ok)run({text}); else pend={text}}
+let pendC=null;const fo=$('fo');
+function runC(n){try{const d=fo.contentDocument;d.getElementById('inp-n').value=n;d.getElementById('btn-go').click()}
+ catch(e){alert('Nie udało się wpisać n do narzędzia Collatz × Ulam. ('+e.message+')')}}
+fo.onload=()=>{let ok=false;try{ok=!!fo.contentDocument.getElementById('inp-n')}catch(e){}
+ if(!ok){fo.dataset.ok='';pendC=null;alert('Nie znaleziono narzędzia. W repozytorium musi być plik collatz-ulam.html z kodem Collatz × Ulam.');return}
+ fo.dataset.ok=1;if(pendC!==null){runC(pendC);pendC=null}};
+function toCol(n,label){n=Math.round(n);
+ if(!(n>=1&&n<=9999999)){alert('Collatz × Ulam przyjmuje n od 1 do 9 999 999 (podano '+n+').');return}
+ log('Do Collatz × Ulam: n='+n+(label?' ('+label+')':''));go('col');if(fo.dataset.ok)runC(n);else pendC=n}
 function toCube(word){log('Szukanie w kostce: '+word);go('cube');$('fc').contentWindow.postMessage({kind:'search',word},location.origin)}
-addEventListener('message',e=>{if(e.origin!==location.origin)return;const d=e.data||{};if(d.kind==='nvm'&&d.text)toNvm(d.text,d.label||'')});
+addEventListener('message',e=>{if(e.origin!==location.origin)return;const d=e.data||{};if(d.kind==='nvm'&&d.text)toNvm(d.text,d.label||'');if(d.kind==='collatz'&&d.n)toCol(d.n,d.label||'')});
 try{const p=localStorage.getItem('nvm_pending');if(p){localStorage.removeItem('nvm_pending');const o=JSON.parse(p);toNvm(o.text,o.label)}}catch(e){}
 /* gematria */
 const V={א:1,ב:2,ג:3,ד:4,ה:5,ו:6,ז:7,ח:8,ט:9,י:10,כ:20,ל:30,מ:40,נ:50,ס:60,ע:70,פ:80,צ:90,ק:100,ר:200,ש:300,ת:400,ך:20,ם:40,ן:50,ף:80,ץ:90};
@@ -103,5 +113,6 @@ async function eq(w){const el=$('geq'),l=$('gl');l.innerHTML='';if(!w){el.textCo
 $('gw').oninput=gem;$('gm').onchange=gem;
 $('gl').onclick=e=>{const c=e.target.closest('.chip');if(c){$('gw').value=c.dataset.w;gem()}};
 $('gc').onclick=()=>{const w=clean($('gw').value);if(w.length>1)toCube(w)};
+$('gk').onclick=()=>{const w=clean($('gw').value);if(w)toCol(M[$('gm').value](w),'gematria '+w)};
 $('gn').onclick=()=>{const w=clean($('gw').value);if(w.length>1)toNvm(w,'słowo '+w)};
 </script></body></html>

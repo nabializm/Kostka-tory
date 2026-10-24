@@ -208,7 +208,7 @@ function showHit(h,pi){
  +'<h4>Wersy, przez które przechodzi słowo</h4>'+g.map(o=>'<div class="vr"><span class="bd">'+o.k+'</span> litery '+o.t.map(t=>t+1).join(', ')+' <span class="hb">'+o.t.map(t=>L[p[t]]).join('')+'</span></div>').join('')
  +'<h4>Odstępy w tekście (w literach)</h4><div class="m">'+(eq?'stały skok '+Math.abs(df[0])+' (klasyczny kod ELS)':'zmienne: '+df.join(', ')+' (litery nie leżą w stałych odstępach tekstu)')+'. Rozpiętość: '+Math.abs(p[p.length-1]-p[0]).toLocaleString('pl-PL')+' liter.</div>'
  +'<h4>Położenie w kostce</h4><div class="m">początek ('+(X[a]+H)+','+(Y[a]+H)+','+(Z[a]+H)+'), koniec ('+(X[b]+H)+','+(Y[b]+H)+','+(Z[b]+H)+'); powłoki: '+sh.join(', ')+'.</div>'
- +'<div class="r"><button onclick="sendNvm(\''+word+'\',\'trafienie '+word+'\')">→ NVMEROKLEIΔON: słowo</button></div><div class="m">Dotknięcie litery pokazuje jej kartę. Dla porównania zawsze sprawdź wynik z losowo przetasowaną kostką.</div>');
+ +'<div class="r"><button onclick="sendNvm(\''+word+'\',\'trafienie '+word+'\')">→ NVMEROKLEIΔON: słowo</button><button onclick="sendCol('+gsum(p)+',\''+word+'\')">→ Collatz × Ulam: n='+gsum(p)+'</button></div><div class="m">Dotknięcie litery pokazuje jej kartę. Dla porównania zawsze sprawdź wynik z losowo przetasowaną kostką.</div>');
 }
 function selectLetter(i){
  if(hitCur&&hitCur.p.includes(i)){showHit(hitCur,i);return}
@@ -238,6 +238,7 @@ cv.addEventListener('pointerup',e=>{const was=maxP;if(ptrs.size===0)maxP=0;if(wa
 function sendNvm(text,label){text=text.replace(/[^\u05D0-\u05EA]/g,'');if(text.length<2)return;
  if(parent!==window)parent.postMessage({kind:'nvm',text,label},location.origin);
  else{try{localStorage.setItem('nvm_pending',JSON.stringify({text,label}))}catch(e){}window.open('laboratorium.html','_blank')}}
+function sendCol(n,label){if(parent!==window)parent.postMessage({kind:'collatz',n,label:'trafienie '+label+' (gematria)'},location.origin);else alert('Ta funkcja działa w Laboratorium (laboratorium.html).')}
 function sendVerse(){if(cur)sendNvm(range(cur[0],cur[1]).map(j=>L[j]).join(''),'wers '+vname(cur[0]))}
 function sendVerseOf(i){const v=verses.get(BK[B[i]]+'.'+CH[i]+'.'+VS[i]);if(v)sendNvm(range(v[0],v[1]).map(j=>L[j]).join(''),'wers '+vname(i))}
 $('lines').addEventListener('click',e=>{const b=e.target.closest('.sn');if(b)sendNvm(b.dataset.s,b.dataset.l)});

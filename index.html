@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="pl"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Kostka Tory – przeglądarka</title>
+<style>
+:root{--bg:#fff;--fg:#1f1f1d;--mut:#5f5e5a;--bd:#d3d1c7;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1f1f1d;--fg:#f1efe8;--mut:#b4b2a9;--bd:#444441;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#1f1f1d;--fg:#f1efe8;--mut:#b4b2a9;--bd:#444441;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;padding:12px}
+h1{font-size:19px;font-weight:500;margin:0 0 6px}
+p,.m{margin:0 0 8px;color:var(--mut);font-size:13px}
+#c{width:100%;border:1px solid var(--bd);border-radius:12px;touch-action:none;display:block}
+.r{display:flex;align-items:center;gap:8px;margin:8px 0;flex-wrap:wrap}
+.r label{font-size:13px;color:var(--mut)}
+input,select,button{font:inherit;padding:5px 8px;border:1px solid var(--bd);border-radius:8px;background:transparent;color:var(--fg);max-width:100%}
+input[type=number]{width:64px}input[type=range]{flex:1;min-width:120px;padding:0}
+#w{width:110px;direction:rtl;font-size:17px}
+pre{white-space:pre-wrap;word-break:break-all;font:13px/1.6 ui-monospace,Menlo,monospace;margin:0 0 6px;direction:ltr}
+.h{padding:4px 0;border-bottom:1px solid var(--bd);font-size:13px;cursor:pointer}
+#vtxt{direction:rtl;font-size:20px;line-height:1.8;margin:4px 0}#vtxt b{color:#ff9500;background:rgba(255,149,0,.18);border-radius:4px;padding:0 2px}.lg{font-size:12px;color:var(--mut);margin:6px 0}
+</style></head><body>
+<h1>Kostka Tory 69×69×69</h1>
+<p>Dane wczytują się automatycznie (ok. 2 MB). Gdyby się nie wczytały, wybierz plik <b>torah_cube.csv.gz</b> ręcznie. Przeciągnij, aby obrócić; dwa palce lub kółko, aby przybliżyć.</p>
+<div class="r"><input type="file" id="f"><span id="st" class="m"></span></div>
+<canvas id="c"></canvas>
+<div class="lg">Kolory chmury to księgi: fioletowy Genesis, zielony Exodus, pomarańczowy Leviticus, różowy Numbers, niebieski Deuteronomy. Litery pomarańczowe: wybrany wers (jasnoniebieska: wybrana litera). Litery czerwone: znalezione słowo. Pomarańczowe linie: linie przez wybraną literę.</div>
+<div class="r"><label for="cut">przekrój</label><input id="cut" type="range" min="-35" max="35" value="35"></div>
+<div class="m"><b>1. Wskaż wers.</b> Wybierz księgę, wpisz numer rozdziału i numer wersu, potem dotknij „Pokaż”. Litery tego wersu zaświecą się w kostce, a widok przybliży się do nich.</div>
+<div class="r"><label for="bk">Księga</label>
+<select id="bk"><option value="genesis">Genesis</option><option value="exodus">Exodus</option><option value="leviticus">Leviticus</option><option value="numbers">Numbers</option><option value="deuteronomy">Deuteronomy</option></select>
+<label for="ch">Rozdział</label><input id="ch" type="number" min="1" value="1"><label for="vs">Wers</label><input id="vs" type="number" min="1" value="1"><button id="go">Pokaż</button></div>
+<div class="m"><b>2. Wybierz literę wersu.</b> Przesuń suwak: wybrana litera jest podświetlona w tekście wersu (poniżej, czytanym od prawej do lewej) i w kostce. Pod spodem zobaczysz linie przechodzące przez tę literę we wszystkich kierunkach.</div>
+<div class="r"><label for="an">litera wersu</label><input id="an" type="range" min="0" max="0" value="0"><span id="anl" class="m"></span></div>
+<div id="vtxt"></div>
+<div id="lines"></div>
+<div class="m"><b>3. Szukaj słowa.</b> Wpisz słowo po hebrajsku, bez nikkud (np. אלהים). Strona przeszuka całą kostkę w 26 kierunkach. Dotknięcie wyniku z listy pokaże go w kostce razem z literami.</div>
+<div class="r"><label for="w">Słowo</label><input id="w" placeholder="אלהים"><button id="sr">Szukaj</button><button id="rs">Cała kostka</button><label><input type="checkbox" id="lbOn" checked> pokaż litery w kostce</label></div>
+<div id="res" class="m"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const S=69,H=34,$=id=>document.getElementById(id);
+const NORM={'ך':'כ','ם':'מ','ן':'נ','ף':'פ','ץ':'צ'},nm=c=>NORM[c]||c;
+let N=0,X,Y,Z,L,B,CH,VS,grid,verses=new Map();
+const BK=['genesis','exodus','leviticus','numbers','deuteronomy'];
+const DIRS=[];for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++)for(let c=-1;c<=1;c++){if(a||b||c){const f=a||b||c;if(f>0)DIRS.push([a,b,c])}}
+const ren=new THREE.WebGLRenderer({canvas:$('c'),antialias:true,alpha:true});
+ren.localClippingEnabled=true;
+const scene=new THREE.Scene(),cam=new THREE.PerspectiveCamera(40,1,1,1000),grp=new THREE.Group(),piv=new THREE.Group();piv.add(grp);scene.add(piv);
+const plane=new THREE.Plane(new THREE.Vector3(-1,0,0),35);
+let cloud=null,hi=null,ln=null,hits=[];
+let rx=0.5,ry=0.7,dist=150,drag=false,lx=0,ly=0,auto=true,ptrs=new Map(),pd=0;
+const cv=$('c');
+cv.addEventListener('pointerdown',e=>{ptrs.set(e.pointerId,[e.clientX,e.clientY]);auto=false;drag=true;lx=e.clientX;ly=e.clientY;cv.setPointerCapture(e.pointerId)});
+cv.addEventListener('pointerup',e=>{ptrs.delete(e.pointerId);pd=0;drag=ptrs.size===1});
+cv.addEventListener('pointermove',e=>{
+ if(!ptrs.has(e.pointerId))return;ptrs.set(e.pointerId,[e.clientX,e.clientY]);
+ if(ptrs.size===2){const [a,b]=[...ptrs.values()];const d=Math.hypot(a[0]-b[0],a[1]-b[1]);if(pd)dist=Math.max(40,Math.min(400,dist*pd/d));pd=d;return}
+ ry+=(e.clientX-lx)*0.008;rx+=(e.clientY-ly)*0.008;rx=Math.max(-1.5,Math.min(1.5,rx));lx=e.clientX;ly=e.clientY});
+cv.addEventListener('wheel',e=>{e.preventDefault();dist=Math.max(40,Math.min(400,dist*(1+e.deltaY*0.001)))},{passive:false});
+function size(){const w=document.body.clientWidth-24,h=Math.min(w,480);ren.setSize(w,h,false);cv.style.height=h+'px';cam.aspect=w/h;cam.updateProjectionMatrix()}
+addEventListener('resize',size);size();
+async function readText(file){
+ const h=new Uint8Array(await file.slice(0,2).arrayBuffer());
+ if(h[0]===0x1f&&h[1]===0x8b){const s=file.stream().pipeThrough(new DecompressionStream('gzip'));return await new Response(s).text()}
+ return await file.text();
+}
+async function loadFile(f){
+ $('st').textContent='Wczytuję…';
+ try{
+  const t=(await readText(f)).split('\n');t.pop();while(t.length&&!t[t.length-1].trim())t.pop();
+  const rows=t.slice(1);N=rows.length;
+  X=new Int8Array(N);Y=new Int8Array(N);Z=new Int8Array(N);B=new Uint8Array(N);CH=new Uint16Array(N);VS=new Uint16Array(N);L=new Array(N);
+  grid=new Int32Array(S*S*S).fill(-1);verses=new Map();
+  rows.forEach((ln,i)=>{const p=ln.trim().split(',');L[i]=p[1];B[i]=BK.indexOf(p[2]);CH[i]=+p[3];VS[i]=+p[4];X[i]=+p[5]-H;Y[i]=+p[6]-H;Z[i]=+p[7]-H;
+   grid[((X[i]+H)*S+Y[i]+H)*S+Z[i]+H]=i;
+   const k=p[2]+'.'+p[3]+'.'+p[4];if(!verses.has(k))verses.set(k,[i,i]);else verses.get(k)[1]=i});
+  build();$('st').textContent=N+' liter wczytano';show();
+ }catch(err){$('st').textContent='Błąd: '+err.message}
+}
+$('f').onchange=e=>{if(e.target.files[0])loadFile(e.target.files[0])};
+fetch('torah_cube.csv.gz').then(r=>{if(!r.ok)throw 0;return r.blob()}).then(loadFile).catch(()=>{$('st').textContent='Nie znaleziono danych, wybierz plik torah_cube.csv.gz ręcznie.'});
+function build(){
+ if(cloud)grp.remove(cloud);
+ const pos=new Float32Array(N*3),col=new Float32Array(N*3);
+ const pal=[[.5,.5,.9],[.2,.7,.55],[.9,.65,.2],[.8,.4,.6],[.5,.7,.9]];
+ for(let i=0;i<N;i++){pos.set([X[i],Y[i],Z[i]],i*3);col.set(pal[B[i]],i*3)}
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.setAttribute('color',new THREE.BufferAttribute(col,3));
+ cloud=new THREE.Points(g,new THREE.PointsMaterial({size:1.6,sizeAttenuation:false,vertexColors:true,transparent:true,opacity:0.22,depthWrite:false,clippingPlanes:[plane]}));
+ grp.add(cloud);
+}
+const TX={};let lab=null,lastL=null;
+function setLabels(idxs,color,sel){
+ lastL=[idxs,color,sel];
+ if(lab){grp.remove(lab);lab=null}
+ if(!$('lbOn').checked||idxs.length>200)return;
+ lab=new THREE.Group();
+ const hex='#'+color.toString(16).padStart(6,'0');
+ idxs.forEach(i=>{const hx=i===sel?'#33d6ff':hex,k=L[i]+hx;
+  if(!TX[k]){const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d');g.font='bold 48px sans-serif';g.textAlign='center';g.textBaseline='middle';g.lineWidth=7;g.strokeStyle='#000';g.strokeText(L[i],32,34);g.fillStyle=hx;g.fillText(L[i],32,34);TX[k]=new THREE.CanvasTexture(c)}
+  const s=new THREE.Sprite(new THREE.SpriteMaterial({map:TX[k],depthTest:false,transparent:true}));
+  const sc=i===sel?3.6:2.6;s.scale.set(sc,sc,1);s.position.set(X[i],Y[i],Z[i]);lab.add(s)});
+ grp.add(lab);
+}
+function focus(idxs){
+ let cx=0,cy=0,cz=0;idxs.forEach(i=>{cx+=X[i];cy+=Y[i];cz+=Z[i]});
+ const n=idxs.length;cx/=n;cy/=n;cz/=n;let e=0;
+ idxs.forEach(i=>{e=Math.max(e,Math.hypot(X[i]-cx,Y[i]-cy,Z[i]-cz))});
+ grp.position.set(-cx,-cy,-cz);dist=Math.max(30,Math.min(150,e*4+22));
+}
+$('lbOn').onchange=()=>{if(lastL)setLabels(lastL[0],lastL[1],lastL[2])};
+$('rs').onclick=()=>{grp.position.set(0,0,0);dist=150};
+function setHi(idxs,color,sz){
+ if(color!==0xff9500)setLabels(idxs,color);
+ if(hi)grp.remove(hi);
+ const p=new Float32Array(idxs.length*3);idxs.forEach((i,j)=>p.set([X[i],Y[i],Z[i]],j*3));
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(p,3));
+ hi=new THREE.Points(g,new THREE.PointsMaterial({size:sz,sizeAttenuation:false,color,depthTest:false}));grp.add(hi);
+}
+function setLines(segs){
+ if(ln)grp.remove(ln);
+ const p=[];segs.forEach(s=>p.push(...s));
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(p,3));
+ ln=new THREE.LineSegments(g,new THREE.LineBasicMaterial({color:0xff9500,transparent:true,opacity:0.8,depthTest:false}));grp.add(ln);
+}
+$('cut').oninput=()=>{plane.constant=+$('cut').value};
+let cur=null;
+function show(){
+ if(!N)return;
+ const k=$('bk').value+'.'+$('ch').value+'.'+$('vs').value,r=verses.get(k);
+ if(!r){$('lines').innerHTML='<p>Nie ma takiego wersu.</p>';return}
+ cur=r;$('an').max=r[1]-r[0];$('an').value=0;const rr=range(r[0],r[1]);setHi(rr,0xff9500,4);focus(rr);anchor();
+}
+const range=(a,b)=>Array.from({length:b-a+1},(_,i)=>a+i);
+function lineThrough(i,d){
+ const out=[i];
+ for(const s of [1,-1]){let x=X[i],y=Y[i],z=Z[i];
+  for(;;){x+=s*d[0];y+=s*d[1];z+=s*d[2];if(Math.abs(x)>H||Math.abs(y)>H||Math.abs(z)>H)break;
+   const j=grid[((x+H)*S+y+H)*S+z+H];if(j<0)break;s>0?out.push(j):out.unshift(j)}}
+ return out;
+}
+function anchor(){
+ if(!cur)return;const i=cur[0]+(+$('an').value),segs=[];
+ $('anl').textContent=(+$('an').value+1)+' z '+(cur[1]-cur[0]+1);
+ $('vtxt').innerHTML=range(cur[0],cur[1]).map(j=>j===i?'<b>'+L[j]+'</b>':L[j]).join('');
+ setLabels(range(cur[0],cur[1]),0xff9500,i);let html='<div class="m">Pole ('+(X[i]+H)+', '+(Y[i]+H)+', '+(Z[i]+H)+'), powłoka '+Math.max(Math.abs(X[i]),Math.abs(Y[i]),Math.abs(Z[i]))+'. Linie przez tę literę. Kierunek (a,b,c) to krok w osiach x, y, z: (1,0,0) poziomo, (0,1,0) pionowo, (0,0,1) w głąb, reszta to przekątne. Litery są czytane wzdłuż kierunku, od końca ujemnego:</div>';
+ const names=['x','y','z'];
+ DIRS.forEach(d=>{const a=lineThrough(i,d);if(a.length<2)return;
+  const f=a[0],l=a[a.length-1];segs.push([X[f],Y[f],Z[f],X[l],Y[l],Z[l]]);
+  html+='<pre><b>('+d+')</b> '+a.map(j=>L[j]).join('')+'</pre>'});
+ $('lines').innerHTML=html;setLines(segs.map(s=>[s[0],s[1],s[2],s[3],s[4],s[5]]));
+}
+$('go').onclick=show;$('an').oninput=anchor;
+$('sr').onclick=()=>{
+ if(!N)return;const w=[...$('w').value.trim()].filter(c=>/[\u05D0-\u05EA]/.test(c)).map(nm);
+ if(w.length<2){$('res').textContent='Wpisz słowo (min. 2 litery).';return}
+ const NL=L.map(nm);hits=[];
+ for(let i=0;i<N;i++){if(NL[i]!==w[0])continue;
+  for(const d of DIRS)for(const s of [1,-1]){
+   let x=X[i],y=Y[i],z=Z[i],p=[i],ok=true;
+   for(let t=1;t<w.length;t++){x+=s*d[0];y+=s*d[1];z+=s*d[2];if(Math.abs(x)>H||Math.abs(y)>H||Math.abs(z)>H){ok=false;break}
+    const j=grid[((x+H)*S+y+H)*S+z+H];if(j<0||NL[j]!==w[t]){ok=false;break}p.push(j)}
+   if(ok){let tr=true;for(let t=1;t<p.length;t++)if(Math.abs(p[t]-p[t-1])!==1)tr=false;hits.push({p,tr})}}}
+ const nt=hits.filter(h=>!h.tr);
+ let html='Trafień: '+hits.length+', w tym nietrywialnych: '+nt.length+' (trywialne to litery leżące w tekście obok siebie). Dotknij pozycji z listy, aby zobaczyć ją w kostce.';
+ nt.slice(0,40).forEach((h,k)=>{const a=h.p[0],b=h.p[h.p.length-1],q=h.p[1];html+='<div class="h" data-k="'+k+'">'+(k+1)+'. <b>'+h.p.map(j=>L[j]).join('')+'</b> · początek '+BK[B[a]]+' '+CH[a]+':'+VS[a]+', koniec '+CH[b]+':'+VS[b]+' · kierunek ('+(X[q]-X[a])+','+(Y[q]-Y[a])+','+(Z[q]-Z[a])+') · pole ('+(X[a]+H)+','+(Y[a]+H)+','+(Z[a]+H)+')</div>'});
+ $('res').innerHTML=html;$('res').onclick=e=>{const k=e.target.dataset.k;if(k===undefined)return;setHi(nt[k].p,0xff3b30,7);focus(nt[k].p);auto=false;$('c').scrollIntoView({behavior:'smooth',block:'center'})};
+};
+function loop(){if(auto)ry+=0.003;piv.rotation.set(rx,ry,0);cam.position.set(0,0,dist);cam.lookAt(0,0,0);ren.render(scene,cam);requestAnimationFrame(loop)}
+loop();
+</script></body></html>

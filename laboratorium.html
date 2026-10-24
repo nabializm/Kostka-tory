@@ -72,7 +72,11 @@ $('ne').onclick=()=>{const b=new Blob([LOG.map(o=>o.t+'  '+o.m).join('\n')],{typ
 let pend=null;const fn=$('fn');
 function run(o){try{const d=fn.contentWindow.document;d.getElementById('input').value=o.text;d.getElementById('analyzeBtn').click()}
  catch(e){alert('Nie udało się wpisać tekstu do silnika. Czy plik nvmerokleion.html jest w repozytorium? ('+e.message+')')}}
-fn.onload=()=>{fn.dataset.ok=1;if(pend){run(pend);pend=null}};
+const NAMES=['nvmerokleion.html','nvmerokleidon.html'];let ni=0;
+fn.onload=()=>{let ok=false;try{ok=!!fn.contentDocument.getElementById('input')}catch(e){}
+ if(!ok&&ni<NAMES.length-1){ni++;fn.src=NAMES[ni];return}
+ if(!ok){fn.dataset.ok='';pend=null;alert('Nie znaleziono silnika. W repozytorium musi być plik nvmerokleion.html (lub nvmerokleidon.html) z kodem NVMEROKLEIΔON.');return}
+ fn.dataset.ok=1;if(pend){run(pend);pend=null}};
 function toNvm(text,label){log('Do NVMEROKLEIΔON: '+label+' ('+text.length+' liter)');go('nvm');if(fn.dataset.ok)run({text}); else pend={text}}
 function toCube(word){log('Szukanie w kostce: '+word);go('cube');$('fc').contentWindow.postMessage({kind:'search',word},location.origin)}
 addEventListener('message',e=>{if(e.origin!==location.origin)return;const d=e.data||{};if(d.kind==='nvm'&&d.text)toNvm(d.text,d.label||'')});

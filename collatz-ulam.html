@@ -1,1 +1,1604 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Collatz × Ulam — ULTIMATE</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap');
 
+*{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#03050d;--panel:#070d1c;--panel2:#0a1225;--border:#0d1e3a;--border2:#142540;
+  --accent:#f7c948;--accent2:#e84040;--accent3:#22e09a;--blue:#1e7fff;
+  --mu-pos:#38b4ff;--mu-neg:#d040b8;
+  --text:#a8c4e0;--muted:#2a4060;--muted2:#3a5070;
+  --circ1:#f7c948;--circ2:#e84040;--circ3:#38b4ff;--circ4:#a040e0;--circ5:#e0e040;
+  --hm1:#03050d;--hm2:#0d1e3a;--hm3:#1e4070;--hm4:#2080c0;--hm5:#20d090;--hm6:#f7c948;--hm7:#e84040;
+}
+
+body{background:var(--bg);color:var(--text);font-family:'Space Mono',monospace;min-height:100vh;overflow-x:hidden}
+
+/* ── HEADER ── */
+header{
+  padding:14px 18px 0;
+  display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px;
+  border-bottom:1px solid var(--border);padding-bottom:12px;margin-bottom:12px;
+}
+.logo{font-family:'Syne',sans-serif;font-weight:800;font-size:20px;letter-spacing:-0.5px}
+.logo .c1{color:var(--accent)}
+.logo .c2{color:var(--mu-pos)}
+.logo .badge{
+  font-size:10px;font-family:'Space Mono',monospace;font-weight:400;
+  background:var(--accent2);color:#fff;padding:2px 7px;
+  margin-left:8px;vertical-align:middle;letter-spacing:1px;
+}
+.header-actions{display:flex;gap:8px;align-items:center}
+
+/* ── TABS ── */
+.tab-bar{
+  display:flex;gap:2px;padding:0 18px;margin-bottom:0;
+  border-bottom:1px solid var(--border);
+}
+.tab-btn{
+  font-family:'Space Mono',monospace;font-size:10px;letter-spacing:1px;
+  padding:7px 14px;background:none;border:none;border-bottom:2px solid transparent;
+  color:var(--muted2);cursor:pointer;transition:all .15s;
+}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* ── MAIN LAYOUT ── */
+.app-body{padding:14px 18px;display:flex;gap:14px;flex-wrap:wrap}
+.left-col{display:flex;flex-direction:column;gap:10px;flex:0 0 auto}
+.right-col{flex:1;min-width:280px;display:flex;flex-direction:column;gap:10px}
+
+/* ── CONTROLS PANEL ── */
+.ctrl-panel{
+  background:var(--panel);border:1px solid var(--border);padding:12px;
+  display:flex;flex-direction:column;gap:10px;width:500px;max-width:100%;
+}
+.ctrl-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.ctrl-group{display:flex;align-items:center;gap:6px;font-size:10px}
+.ctrl-group label{color:var(--muted2);letter-spacing:.5px}
+.ctrl-group .val{color:var(--accent);min-width:24px;text-align:right}
+input[type=range]{width:72px;accent-color:var(--accent);cursor:pointer;height:14px}
+input[type=text]{
+  background:#05091a;color:var(--accent);border:1px solid var(--border2);
+  font-family:'Space Mono',monospace;font-size:14px;padding:5px 10px;width:110px;
+  outline:none;transition:border-color .15s;
+}
+input[type=text]:focus{border-color:var(--accent)}
+.checkbox-group{display:flex;align-items:center;gap:5px;font-size:10px;cursor:pointer;color:var(--muted2)}
+.checkbox-group input{accent-color:var(--accent);cursor:pointer}
+
+/* ── BUTTONS ── */
+.btn{
+  font-family:'Space Mono',monospace;font-size:11px;letter-spacing:1px;
+  padding:6px 16px;border:none;cursor:pointer;transition:all .15s;
+}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-primary:hover{background:#2d8fff}
+.btn-primary:disabled{background:var(--muted);cursor:default}
+.btn-ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+.btn-ghost:hover{background:var(--accent);color:var(--bg)}
+.btn-ghost.active{background:var(--accent);color:var(--bg)}
+.btn-danger{background:var(--accent2);color:#fff}
+.btn-sm{padding:3px 9px;font-size:9px;letter-spacing:.5px}
+.btn-export{background:transparent;color:var(--accent3);border:1px solid var(--accent3);font-family:'Space Mono',monospace;font-size:9px;letter-spacing:1px;padding:4px 10px;cursor:pointer}
+.btn-export:hover{background:var(--accent3);color:var(--bg)}
+
+/* ── PRESETS ── */
+.presets-row{display:flex;flex-wrap:wrap;gap:5px}
+.preset-tag{
+  background:var(--panel2);border:1px solid var(--border2);
+  color:var(--text);font-size:9px;padding:3px 9px;cursor:pointer;
+  letter-spacing:.5px;transition:all .12s;font-family:'Space Mono',monospace;
+}
+.preset-tag:hover{border-color:var(--accent3);color:var(--accent3)}
+.preset-tag .pn{color:var(--accent);margin-right:4px}
+.preset-tag .pd{color:var(--muted2)}
+
+/* ── VIEW MODES ── */
+.view-modes{display:flex;gap:4px}
+.vmode-btn{
+  background:var(--panel2);border:1px solid var(--border);
+  color:var(--muted2);font-size:9px;padding:4px 10px;cursor:pointer;
+  font-family:'Space Mono',monospace;letter-spacing:.5px;transition:all .12s;
+}
+.vmode-btn.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+
+/* ── CANVAS ── */
+.canvas-wrap{
+  position:relative;border:1px solid var(--border);line-height:0;
+  user-select:none;touch-action:none;background:var(--bg);
+}
+#view-canvas{display:block;cursor:crosshair}
+#view-canvas.dragging{cursor:grabbing}
+.zoom-hud{
+  position:absolute;top:6px;right:6px;font-size:9px;
+  background:rgba(3,5,13,.9);padding:3px 9px;color:var(--accent);
+  display:flex;align-items:center;gap:7px;border:1px solid var(--border);
+}
+.zoom-hint{position:absolute;top:6px;left:6px;font-size:8px;color:var(--muted);background:rgba(3,5,13,.75);padding:2px 6px}
+.view-mode-label{
+  position:absolute;bottom:6px;right:6px;font-size:9px;
+  background:rgba(3,5,13,.85);padding:2px 8px;color:var(--muted2);border:1px solid var(--border);
+}
+.overlay-msg{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  background:rgba(3,5,13,.8);color:var(--accent);font-size:12px;letter-spacing:1px;
+  display:none;
+}
+.hm-legend{
+  position:absolute;bottom:6px;left:6px;
+  background:rgba(3,5,13,.85);border:1px solid var(--border);padding:6px 8px;
+  font-size:9px;display:none;
+}
+.hm-grad{width:80px;height:8px;margin-bottom:3px;
+  background:linear-gradient(to right,var(--hm1),var(--hm2),var(--hm3),var(--hm4),var(--hm5),var(--hm6),var(--hm7))}
+.hm-labels{display:flex;justify-content:space-between;color:var(--muted2);font-size:8px}
+
+/* ── ANIMATION CONTROLS ── */
+.anim-bar{
+  background:var(--panel);border:1px solid var(--border);padding:8px 12px;
+  display:flex;flex-direction:column;gap:6px;
+}
+.anim-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.anim-slider{flex:1;min-width:120px;accent-color:var(--mu-pos);height:14px}
+.anim-step{color:var(--mu-pos);font-size:11px;min-width:60px}
+.speed-row{display:flex;align-items:center;gap:6px;font-size:9px;color:var(--muted2)}
+.speed-row input{width:60px;accent-color:var(--accent)}
+
+/* ── CHARTS ── */
+.chart-box{background:var(--panel);border:1px solid var(--border);padding:10px}
+.chart-title{font-size:9px;color:var(--muted2);letter-spacing:1px;margin-bottom:6px;text-transform:uppercase}
+#chart-canvas{display:block;background:transparent}
+#baseline-canvas{display:block;background:transparent}
+
+/* ── INFO PANELS ── */
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stat-box{background:var(--panel);border:1px solid var(--border);padding:10px}
+.stat-box .sh{font-size:9px;color:var(--muted2);letter-spacing:1px;margin-bottom:8px;text-transform:uppercase;border-bottom:1px solid var(--border);padding-bottom:4px}
+.stat-row{display:flex;justify-content:space-between;font-size:10px;padding:2px 0;border-bottom:1px solid #060d1a}
+.stat-row .sk{color:var(--muted2)}
+.stat-row .sv{color:var(--text)}
+.stat-row .sv.accent{color:var(--accent)}
+.stat-row .sv.pos{color:var(--accent3)}
+.stat-row .sv.neg{color:var(--accent2)}
+
+/* ── MÖBIUS CHART ── */
+#mu-canvas{display:block}
+
+/* ── BASELINE SECTION ── */
+.baseline-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.baseline-legend{display:flex;gap:12px;font-size:9px}
+.bl-item{display:flex;align-items:center;gap:4px}
+.bl-dot{width:8px;height:8px;border-radius:50%}
+
+/* ── STATUS BAR ── */
+.status-bar{
+  background:var(--panel2);border:1px solid var(--border);border-top:none;
+  padding:5px 18px;font-size:9px;color:var(--muted2);
+  display:flex;gap:16px;flex-wrap:wrap;
+}
+.status-bar b{color:var(--text)}
+.status-bar .sc{color:var(--accent)}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:var(--panel)}
+::-webkit-scrollbar-thumb{background:var(--muted);border-radius:2px}
+
+/* ── HELP PANEL ── */
+.help-overlay{
+  display:none;position:fixed;inset:0;background:rgba(3,5,13,.9);z-index:100;
+  align-items:center;justify-content:center;
+}
+.help-overlay.open{display:flex}
+.help-modal{
+  background:var(--panel);border:1px solid var(--border2);
+  max-width:640px;width:90%;max-height:85vh;overflow-y:auto;padding:20px;
+  position:relative;
+}
+.help-modal h3{color:var(--accent);font-family:'Syne',sans-serif;margin-bottom:12px}
+.help-close{
+  position:absolute;top:12px;right:12px;background:none;border:none;
+  color:var(--muted2);font-size:18px;cursor:pointer;
+}
+.help-close:hover{color:var(--text)}
+.help-table{width:100%;border-collapse:collapse;font-size:10px;margin-bottom:12px}
+.help-table th{color:var(--muted2);text-align:left;padding:3px 8px 5px 0;border-bottom:1px solid var(--border)}
+.help-table td{padding:3px 8px 3px 0;vertical-align:top;color:var(--text);border-bottom:1px solid #08111f}
+.help-table td:first-child{color:var(--accent);white-space:nowrap}
+
+/* ── RESPONSIVE ── */
+@media(max-width:900px){
+  .ctrl-panel{width:100%}
+  .info-grid{grid-template-columns:1fr}
+  .app-body{flex-direction:column}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="c1">Collatz</span>
+    <span style="color:var(--muted2)"> × </span>
+    <span class="c2">Ulam</span>
+    <span class="badge">ULTIMATE</span>
+  </div>
+  <div class="header-actions">
+    <button class="btn-export" id="btn-export-png">⬇ PNG</button>
+    <button class="btn-export" id="btn-export-txt">⬇ TXT</button>
+    <button class="btn btn-ghost btn-sm" id="btn-help-open">? POMOC</button>
+  </div>
+</header>
+
+<!-- STATUS BAR -->
+<div class="status-bar" id="status-bar">Wpisz n i kliknij GO…</div>
+
+<!-- TABS -->
+<div class="tab-bar">
+  <button class="tab-btn active" data-tab="main">SPIRALA</button>
+  <button class="tab-btn" data-tab="anim">ANIMACJA</button>
+  <button class="tab-btn" data-tab="heatmap">HEATMAPA</button>
+  <button class="tab-btn" data-tab="baseline">BASELINE</button>
+  <button class="tab-btn" data-tab="mobius">MÖBIUS</button>
+</div>
+
+<div class="app-body">
+<div class="left-col">
+
+  <!-- CONTROLS -->
+  <div class="ctrl-panel">
+    <div class="ctrl-row">
+      <div class="ctrl-group">
+        <label>n =</label>
+        <input type="text" id="inp-n" value="703"/>
+      </div>
+      <button class="btn btn-primary" id="btn-go">▶ GO</button>
+    </div>
+
+    <div class="ctrl-row">
+      <div class="ctrl-group">
+        <label>ε</label>
+        <input type="range" id="sl-eps" min="1" max="12" step="0.5" value="3"/>
+        <span class="val" id="lbl-eps">3</span>
+      </div>
+      <div class="ctrl-group">
+        <label>minIn</label>
+        <input type="range" id="sl-min" min="3" max="12" step="1" value="4"/>
+        <span class="val" id="lbl-min">4</span>
+      </div>
+      <div class="ctrl-group">
+        <label>iter</label>
+        <input type="range" id="sl-iter" min="50" max="800" step="50" value="400"/>
+        <span class="val" id="lbl-iter">400</span>
+      </div>
+      <div class="ctrl-group">
+        <label>topN</label>
+        <input type="range" id="sl-topn" min="1" max="5" step="1" value="3"/>
+        <span class="val" id="lbl-topn">3</span>
+      </div>
+    </div>
+
+    <div class="ctrl-row">
+      <label class="checkbox-group"><input type="checkbox" id="chk-mu" checked/><span>μ-tło</span></label>
+      <label class="checkbox-group"><input type="checkbox" id="chk-path" checked/><span>ścieżka</span></label>
+      <label class="checkbox-group"><input type="checkbox" id="chk-circles" checked/><span>okręgi RANSAC</span></label>
+      <label class="checkbox-group"><input type="checkbox" id="chk-numbers"/><span>numery</span></label>
+    </div>
+
+    <!-- PRESETS -->
+    <div>
+      <div style="font-size:9px;color:var(--muted2);margin-bottom:5px;letter-spacing:1px">PRESETS:</div>
+      <div class="presets-row" id="presets-row"></div>
+    </div>
+  </div>
+
+  <!-- VIEW MODES -->
+  <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+    <div class="view-modes">
+      <button class="vmode-btn active" data-mode="spiral">SPIRALA</button>
+      <button class="vmode-btn" data-mode="heatmap">HEAT</button>
+      <button class="vmode-btn" data-mode="baseline">BASELINE</button>
+    </div>
+  </div>
+
+  <!-- CANVAS -->
+  <div class="canvas-wrap" id="canvas-wrap">
+    <canvas id="view-canvas" width="502" height="502"></canvas>
+    <div class="zoom-hud">
+      🔍 <span id="zoom-label">1.00×</span>
+      <button class="btn btn-sm" style="background:var(--muted);color:#fff;border:none;font-family:inherit;cursor:pointer" id="btn-reset-zoom">reset</button>
+    </div>
+    <div class="zoom-hint">scroll = zoom · drag = pan</div>
+    <div class="view-mode-label" id="view-mode-label">SPIRALA</div>
+    <div class="overlay-msg" id="overlay">obliczanie…</div>
+    <div class="hm-legend" id="hm-legend">
+      <div class="hm-grad"></div>
+      <div class="hm-labels"><span>rzadko</span><span>często</span></div>
+    </div>
+  </div>
+
+  <!-- ANIMATION BAR (visible in anim tab) -->
+  <div class="anim-bar" id="anim-bar" style="display:none">
+    <div class="anim-row">
+      <button class="btn btn-primary btn-sm" id="btn-play">▶</button>
+      <button class="btn btn-ghost btn-sm" id="btn-anim-reset">⏮</button>
+      <input type="range" class="anim-slider" id="anim-slider" min="0" max="100" value="0"/>
+      <span class="anim-step" id="anim-step">krok 0/0</span>
+    </div>
+    <div class="speed-row">
+      <label>szybkość:</label>
+      <input type="range" id="sl-speed" min="1" max="60" value="12"/>
+      <span id="lbl-speed" style="color:var(--accent);font-size:9px">12/s</span>
+    </div>
+  </div>
+
+</div><!-- /left-col -->
+
+<div class="right-col">
+
+  <!-- SEQUENCE CHART -->
+  <div class="chart-box">
+    <div class="chart-title">Przebieg sekwencji Collatza (do 400 kroków)</div>
+    <canvas id="chart-canvas" width="400" height="160"></canvas>
+  </div>
+
+  <!-- INFO GRID -->
+  <div class="info-grid">
+    <div class="stat-box" id="box-seq">
+      <div class="sh">Sekwencja</div>
+      <div class="stat-row"><span class="sk">Długość</span><span class="sv accent" id="si-len">—</span></div>
+      <div class="stat-row"><span class="sk">Max wartość</span><span class="sv" id="si-max">—</span></div>
+      <div class="stat-row"><span class="sk">Szczyt na kroku</span><span class="sv" id="si-peak">—</span></div>
+      <div class="stat-row"><span class="sk">Poza spiralą</span><span class="sv neg" id="si-out">—</span></div>
+      <div class="stat-row"><span class="sk">Na spirali</span><span class="sv pos" id="si-in">—</span></div>
+      <div class="stat-row"><span class="sk">Unikalne komórki</span><span class="sv" id="si-uniq">—</span></div>
+    </div>
+    <div class="stat-box" id="box-ransac">
+      <div class="sh" style="display:flex;justify-content:space-between;align-items:center">
+        <span>RANSAC — okręgi</span>
+        <span id="ransac-run-badge" style="font-size:8px;color:var(--muted2)"></span>
+      </div>
+      <div id="ransac-stats"></div>
+      <div id="ransac-hebrew-map" style="margin-top:8px"></div>
+      <div id="ransac-history" style="margin-top:8px;border-top:1px solid var(--border);padding-top:6px"></div>
+    </div>
+    <div class="stat-box" id="box-mobius">
+      <div class="sh">Möbius μ (sekwencja)</div>
+      <div class="stat-row"><span class="sk">μ = +1 (wolne od kw.)</span><span class="sv pos" id="mu-pos-val">—</span></div>
+      <div class="stat-row"><span class="sk">μ = −1</span><span class="sv neg" id="mu-neg-val">—</span></div>
+      <div class="stat-row"><span class="sk">μ = 0 (ma kw. czynnik)</span><span class="sv" id="mu-zero-val">—</span></div>
+      <div class="stat-row"><span class="sk">Suma μ</span><span class="sv" id="mu-sum-val">—</span></div>
+      <div class="stat-row"><span class="sk">|μ| = 1 (wolne od kw.)</span><span class="sv accent" id="mu-sq-val">—</span></div>
+    </div>
+    <div class="stat-box" id="box-baseline">
+      <div class="sh">Baseline (losowy)</div>
+      <div class="stat-row"><span class="sk">Collatz pokrycie</span><span class="sv" id="bl-collatz">—</span></div>
+      <div class="stat-row"><span class="sk">Losowe pokrycie</span><span class="sv" id="bl-random">—</span></div>
+      <div class="stat-row"><span class="sk">Różnica</span><span class="sv accent" id="bl-diff">—</span></div>
+      <div class="stat-row"><span class="sk">Klastry Coll.</span><span class="sv" id="bl-clusters">—</span></div>
+      <div class="stat-row"><span class="sk">Klastry los.</span><span class="sv" id="bl-rclusters">—</span></div>
+    </div>
+  </div>
+
+  <!-- BASELINE COMPARISON CHART -->
+  <div class="chart-box" id="baseline-chart-box">
+    <div class="baseline-header">
+      <div class="chart-title">Rozkład wartości: Collatz vs Losowy baseline</div>
+      <div class="baseline-legend">
+        <div class="bl-item"><div class="bl-dot" style="background:var(--accent3)"></div><span style="font-size:9px">Collatz</span></div>
+        <div class="bl-item"><div class="bl-dot" style="background:var(--accent2)"></div><span style="font-size:9px">Losowy</span></div>
+      </div>
+    </div>
+    <canvas id="baseline-canvas" width="400" height="130"></canvas>
+  </div>
+
+  <!-- MÖBIUS BAR CHART -->
+  <div class="chart-box">
+    <div class="chart-title">Möbius μ wzdłuż sekwencji</div>
+    <canvas id="mu-canvas" width="400" height="80"></canvas>
+  </div>
+
+</div><!-- /right-col -->
+</div><!-- /app-body -->
+
+<!-- HELP MODAL -->
+<div class="help-overlay" id="help-overlay">
+  <div class="help-modal">
+    <button class="help-close" id="help-close">✕</button>
+    <h3>Collatz × Ulam Spiral — ULTIMATE</h3>
+    <table class="help-table">
+      <tr><th>Parametr</th><th>Działanie</th></tr>
+      <tr><td>n</td><td>Liczba startowa sekwencji Collatza (1 – 9 999 999)</td></tr>
+      <tr><td>ε (epsilon)</td><td>Tolerancja RANSAC — maks. odległość punktu od okręgu</td></tr>
+      <tr><td>minIn</td><td>Min. liczba inlierów do akceptacji okręgu</td></tr>
+      <tr><td>iter</td><td>Iteracje RANSAC (więcej = lepsza szansa, wolniej)</td></tr>
+      <tr><td>topN</td><td>Liczba szukanych okręgów (kolejne szukane na pozostałych punktach)</td></tr>
+      <tr><td>μ-tło</td><td>Koloruje tło funkcją Möbiusa: ciemnoniebieski = −1, granat = +1</td></tr>
+      <tr><td>ścieżka</td><td>Rysuje linię łączącą kolejne punkty sekwencji</td></tr>
+      <tr><td>ANIMACJA</td><td>Odtwarza sekwencję krok po kroku — Play/Pause + suwak + prędkość</td></tr>
+      <tr><td>HEATMAPA</td><td>Gęstość odwiedzin każdej komórki spirali (ciepłe = częstsze)</td></tr>
+      <tr><td>BASELINE</td><td>Porównuje rozkład Collatza z losowymi liczbami o tej samej liczności</td></tr>
+      <tr><td>MÖBIUS</td><td>Wykres μ(v) dla kolejnych wartości w sekwencji</td></tr>
+      <tr><td>PNG</td><td>Eksportuje bieżący widok canvas jako plik PNG</td></tr>
+    </table>
+    <div style="font-size:10px;color:var(--muted2);margin-top:8px">
+      Nawigacja: kółko myszy = zoom · LPM+drag = pan · pinch (dotyk) = zoom · 1 palec = pan
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONSTANTS ────────────────────────────────────────────────────────────────
+const SZ    = 251;
+const MAXN  = SZ * SZ; // 63001
+const CELL  = 2;
+const W     = SZ * CELL;
+const VIEW  = 502;
+const HALF  = Math.floor(SZ / 2);
+const CIRC_COLS = ["#f7c948","#e84040","#38b4ff","#a040e0","#e0e040"];
+
+const HEBREW = ["א","ב","ג","ד","ה","ו","ז","ח","ט","י","כ","ל","מ","נ","ס","ע","פ","צ","ק","ר","ש","ת","ך","ם","ן","ף","ץ"];
+
+// Historia przebiegów RANSAC
+let ransacHistory = [];
+
+const PRESETS = [
+  { n: 27,     label: "27",     desc: "111 kroków" },
+  { n: 703,    label: "703",    desc: "domyślna" },
+  { n: 6171,   label: "6171",   desc: "261 kroków" },
+  { n: 77031,  label: "77031",  desc: "ciekawa geo." },
+  { n: 837799, label: "837799", desc: "rekord <1M" },
+  { n: 1,      label: "1",      desc: "trywialny" },
+  { n: 9,      label: "9",      desc: "20 kroków" },
+  { n: 871,    label: "871",    desc: "178 kroków" },
+];
+
+// ── SIEVE ─────────────────────────────────────────────────────────────────────
+function buildMuSieve(max) {
+  const mu = new Int8Array(max + 1);
+  const isComp = new Uint8Array(max + 1);
+  const primes = [];
+  mu[1] = 1;
+  for (let i = 2; i <= max; i++) {
+    if (!isComp[i]) { primes.push(i); mu[i] = -1; }
+    for (let j = 0; j < primes.length && i * primes[j] <= max; j++) {
+      isComp[i * primes[j]] = 1;
+      if (i % primes[j] === 0) { mu[i * primes[j]] = 0; break; }
+      else mu[i * primes[j]] = -mu[i];
+    }
+  }
+  return mu;
+}
+
+// ── ULAM MAP ──────────────────────────────────────────────────────────────────
+function buildUlamMap(size) {
+  const map = new Map();
+  const half = Math.floor(size / 2), maxN = size * size;
+  let x = 0, y = 0, n = 1, step = 1, dir = 0;
+  const dx = [1,0,-1,0], dy = [0,-1,0,1];
+  map.set(n++, [x, y]);
+  while (n <= maxN) {
+    for (let leg = 0; leg < 2; leg++) {
+      for (let i = 0; i < step && n <= maxN; i++) {
+        x += dx[dir]; y += dy[dir];
+        if (Math.abs(x) <= half && Math.abs(y) <= half) map.set(n, [x, y]);
+        n++;
+      }
+      dir = (dir + 1) % 4;
+    }
+    step++;
+  }
+  return map;
+}
+
+// ── COLLATZ ───────────────────────────────────────────────────────────────────
+function collatzSeq(start) {
+  const seq = [start]; let n = start, g = 0;
+  while (n !== 1 && g++ < 300000) { n = n % 2 === 0 ? n / 2 : 3 * n + 1; seq.push(n); }
+  return seq;
+}
+
+// ── RANSAC ────────────────────────────────────────────────────────────────────
+function circleFrom3(p1, p2, p3) {
+  const [x1,y1]=p1,[x2,y2]=p2,[x3,y3]=p3;
+  const D = 2*(x1*(y2-y3)+x2*(y3-y1)+x3*(y1-y2));
+  if (Math.abs(D) < 1e-9) return null;
+  const ux = ((x1**2+y1**2)*(y2-y3)+(x2**2+y2**2)*(y3-y1)+(x3**2+y3**2)*(y1-y2)) / D;
+  const uy = ((x1**2+y1**2)*(x3-x2)+(x2**2+y2**2)*(x1-x3)+(x3**2+y3**2)*(x2-x1)) / D;
+  const r = Math.hypot(x1-ux, y1-uy);
+  return { cx: ux, cy: uy, r };
+}
+function ransac(pts, eps, iters, minIn) {
+  if (pts.length < 3) return null;
+  let best = null, bestN = 0;
+  for (let it = 0; it < iters; it++) {
+    const i = Math.floor(Math.random()*pts.length);
+    let j = Math.floor(Math.random()*pts.length); while(j===i) j=Math.floor(Math.random()*pts.length);
+    let k = Math.floor(Math.random()*pts.length); while(k===i||k===j) k=Math.floor(Math.random()*pts.length);
+    const c = circleFrom3(pts[i], pts[j], pts[k]);
+    if (!c || c.r > SZ*2 || c.r < 0.5) continue;
+    const inl = pts.filter(p => Math.abs(Math.hypot(p[0]-c.cx,p[1]-c.cy)-c.r) < eps);
+    if (inl.length > bestN) { bestN = inl.length; best = {...c, inliers: inl, count: inl.length}; }
+  }
+  return bestN >= minIn ? best : null;
+}
+function findCircles(pts, eps, iters, minIn, topN) {
+  let rem = [...pts]; const res = [];
+  for (let i = 0; i < topN; i++) {
+    if (rem.length < minIn) break;
+    const c = ransac(rem, eps, iters, minIn);
+    if (!c) break;
+    res.push(c);
+    const used = new Set(c.inliers.map(p => `${p[0]},${p[1]}`));
+    rem = rem.filter(p => !used.has(`${p[0]},${p[1]}`));
+  }
+  return res;
+}
+
+// ── CLUSTER COUNT (simple 4-neighborhood) ─────────────────────────────────────
+function countClusters(pts) {
+  const set = new Set(pts.map(p => `${p[0]},${p[1]}`));
+  const visited = new Set();
+  let clusters = 0;
+  for (const p of pts) {
+    const key = `${p[0]},${p[1]}`;
+    if (visited.has(key)) continue;
+    clusters++;
+    const stack = [p];
+    while (stack.length) {
+      const [cx, cy] = stack.pop();
+      const k2 = `${cx},${cy}`;
+      if (visited.has(k2)) continue;
+      visited.add(k2);
+      for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) {
+        const nk = `${cx+dx},${cy+dy}`;
+        if (set.has(nk) && !visited.has(nk)) stack.push([cx+dx, cy+dy]);
+      }
+    }
+  }
+  return clusters;
+}
+
+// ── HEATMAP ───────────────────────────────────────────────────────────────────
+function buildHeatmap(seq) {
+  const freq = new Map();
+  for (const v of seq) {
+    if (v > MAXN) continue;
+    const pos = ulamMap.get(v); if (!pos) continue;
+    const key = `${pos[0]},${pos[1]}`;
+    freq.set(key, (freq.get(key) || 0) + 1);
+  }
+  return freq;
+}
+
+// ── RANDOM BASELINE ───────────────────────────────────────────────────────────
+function buildBaseline(count) {
+  const pts = [];
+  const set = new Set();
+  while (pts.length < count) {
+    const v = Math.floor(Math.random() * MAXN) + 1;
+    if (!set.has(v)) { set.add(v); const pos = ulamMap.get(v); if (pos) pts.push(pos); }
+  }
+  return pts;
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+const ulamMap = buildUlamMap(SZ);
+const muSieve = buildMuSieve(MAXN);
+
+// ── OFFSCREEN CANVASES ────────────────────────────────────────────────────────
+const offSpiral   = document.createElement('canvas'); offSpiral.width = W; offSpiral.height = W;
+const offHeatmap  = document.createElement('canvas'); offHeatmap.width = W; offHeatmap.height = W;
+const offBaseline = document.createElement('canvas'); offBaseline.width = W; offBaseline.height = W;
+const oCtx  = offSpiral.getContext('2d');
+const hmCtx = offHeatmap.getContext('2d');
+const blCtx = offBaseline.getContext('2d');
+
+// ── BACKGROUND IMAGE DATA ─────────────────────────────────────────────────────
+function buildBgImageData(showMu) {
+  const arr = new Uint8ClampedArray(W * W * 4);
+  for (let i = 0; i < arr.length; i += 4) { arr[i]=3; arr[i+1]=5; arr[i+2]=13; arr[i+3]=255; }
+  if (showMu) {
+    for (const [n, [sx,sy]] of ulamMap) {
+      const mu = muSieve[n]; if (mu === 0) continue;
+      const px = (sx+HALF)*CELL, py = (sy+HALF)*CELL;
+      for (let dy = 0; dy < CELL; dy++) for (let dx = 0; dx < CELL; dx++) {
+        const idx = ((py+dy)*W+(px+dx))*4;
+        if (mu === -1) { arr[idx]=20; arr[idx+1]=50; arr[idx+2]=95; }
+        else            { arr[idx]=12; arr[idx+1]=32; arr[idx+2]=58; }
+      }
+    }
+  }
+  return new ImageData(arr, W, W);
+}
+const bgMu  = buildBgImageData(true);
+const bgRaw = buildBgImageData(false);
+
+// ── HEATMAP COLORS ────────────────────────────────────────────────────────────
+function heatmapColor(t) {
+  // 0→1: dark blue → blue → teal → green → yellow → orange → red
+  const stops = [
+    [3,5,13],[13,30,58],[30,64,112],[32,128,192],[32,208,144],[247,201,72],[232,64,64]
+  ];
+  const n = stops.length - 1;
+  const i = Math.min(n-1, Math.floor(t * n));
+  const f = t * n - i;
+  const a = stops[i], b = stops[i+1];
+  return [
+    Math.round(a[0]+(b[0]-a[0])*f),
+    Math.round(a[1]+(b[1]-a[1])*f),
+    Math.round(a[2]+(b[2]-a[2])*f)
+  ];
+}
+
+// ── VIEW STATE ────────────────────────────────────────────────────────────────
+let zoom = 1, panX = 0, panY = 0;
+let rafPending = false;
+let viewMode = 'spiral'; // spiral | heatmap | baseline
+let currentComputed = null;
+
+// ── ANIMATION STATE ───────────────────────────────────────────────────────────
+let animFrame = null;
+let animStep = 0;
+let animPlaying = false;
+let animSpeed = 12;
+
+// ── DRAW SPIRAL OFFSCREEN ─────────────────────────────────────────────────────
+function drawSpiralOffscreen(comp, showMu, showPath, showCircles, showNumbers, stepLimit) {
+  const imgd = showMu ? bgMu : bgRaw;
+  oCtx.putImageData(imgd, 0, 0);
+  if (!comp) return;
+
+  const lim = stepLimit !== undefined ? stepLimit : comp.seq.length;
+  const seqSlice = comp.seq.slice(0, lim);
+
+  // path
+  if (showPath) {
+    oCtx.save();
+    oCtx.strokeStyle = 'rgba(30,127,255,0.32)';
+    oCtx.lineWidth = 1;
+    oCtx.beginPath();
+    let first = true;
+    for (const v of seqSlice) {
+      if (v > MAXN) continue;
+      const pos = ulamMap.get(v); if (!pos) continue;
+      const px = (pos[0]+HALF)*CELL+CELL/2, py = (pos[1]+HALF)*CELL+CELL/2;
+      if (first) { oCtx.moveTo(px,py); first = false; } else oCtx.lineTo(px,py);
+    }
+    oCtx.stroke();
+    oCtx.restore();
+  }
+
+  // points
+  oCtx.save();
+  oCtx.fillStyle = '#22e09a';
+  const seen = new Set();
+  seqSlice.forEach((v,idx) => {
+    if (v > MAXN) return;
+    const pos = ulamMap.get(v); if (!pos) return;
+    const key = `${pos[0]},${pos[1]}`;
+    if (seen.has(key)) return; seen.add(key);
+    oCtx.fillRect((pos[0]+HALF)*CELL-1, (pos[1]+HALF)*CELL-1, CELL+2, CELL+2);
+  });
+  oCtx.restore();
+
+  // numbers at points (if enabled)
+  if (showNumbers) {
+    oCtx.save();
+    oCtx.font = '4px Space Mono'; oCtx.fillStyle = 'rgba(255,255,180,0.7)';
+    oCtx.textAlign = 'center'; oCtx.textBaseline = 'middle';
+    const seen2 = new Set();
+    seqSlice.forEach((v,idx) => {
+      if (v > MAXN) return;
+      const pos = ulamMap.get(v); if (!pos) return;
+      const key = `${pos[0]},${pos[1]}`;
+      if (seen2.has(key)) return; seen2.add(key);
+      oCtx.fillText(String(idx+1), (pos[0]+HALF)*CELL+CELL/2, (pos[1]+HALF)*CELL+CELL/2);
+    });
+    oCtx.restore();
+  }
+
+  // start marker
+  if (comp.n <= MAXN) {
+    const pos = ulamMap.get(comp.n);
+    if (pos) {
+      const px = (pos[0]+HALF)*CELL+CELL/2, py = (pos[1]+HALF)*CELL+CELL/2;
+      oCtx.save();
+      oCtx.fillStyle='#f7c948'; oCtx.strokeStyle='#fff'; oCtx.lineWidth=1;
+      oCtx.beginPath(); oCtx.arc(px,py,5,0,Math.PI*2); oCtx.fill(); oCtx.stroke();
+      oCtx.restore();
+    }
+  }
+
+  // RANSAC circles
+  if (showCircles && stepLimit === undefined) {
+    comp.circles.forEach((c,i) => {
+      oCtx.save();
+      oCtx.strokeStyle = CIRC_COLS[i % CIRC_COLS.length];
+      oCtx.lineWidth = 1.5; oCtx.globalAlpha = 0.82;
+      oCtx.setLineDash([4,3]);
+      oCtx.beginPath();
+      oCtx.arc((c.cx+HALF)*CELL, (c.cy+HALF)*CELL, c.r*CELL, 0, Math.PI*2);
+      oCtx.stroke();
+      oCtx.restore();
+    });
+  }
+}
+
+// ── DRAW HEATMAP OFFSCREEN ────────────────────────────────────────────────────
+function drawHeatmapOffscreen(comp) {
+  hmCtx.fillStyle = '#03050d';
+  hmCtx.fillRect(0, 0, W, W);
+  if (!comp) return;
+  const freq = comp.heatmap;
+  if (!freq || freq.size === 0) return;
+  const maxFreq = Math.max(...freq.values());
+  const arr = new Uint8ClampedArray(W * W * 4);
+  // fill bg
+  for (let i = 0; i < arr.length; i += 4) { arr[i]=3; arr[i+1]=5; arr[i+2]=13; arr[i+3]=255; }
+  // iterate heatmap
+  for (const [key, cnt] of freq) {
+    const parts = key.split(',');
+    const sx = parseInt(parts[0]), sy = parseInt(parts[1]);
+    const t = Math.pow(cnt / maxFreq, 0.4);
+    const [r,g,b] = heatmapColor(t);
+    const px = (sx+HALF)*CELL, py = (sy+HALF)*CELL;
+    for (let dy = 0; dy < CELL; dy++) for (let dx = 0; dx < CELL; dx++) {
+      const idx = ((py+dy)*W+(px+dx))*4;
+      arr[idx]=r; arr[idx+1]=g; arr[idx+2]=b; arr[idx+3]=255;
+    }
+  }
+  hmCtx.putImageData(new ImageData(arr, W, W), 0, 0);
+}
+
+// ── DRAW BASELINE OFFSCREEN ───────────────────────────────────────────────────
+function drawBaselineOffscreen(comp) {
+  blCtx.fillStyle = '#03050d';
+  blCtx.fillRect(0, 0, W, W);
+  if (!comp || !comp.baseline) return;
+
+  // Draw Ulam grid faint
+  blCtx.putImageData(bgRaw, 0, 0);
+
+  // Random baseline points — red
+  blCtx.save();
+  blCtx.fillStyle = 'rgba(232,64,64,0.55)';
+  for (const [sx,sy] of comp.baseline) {
+    blCtx.fillRect((sx+HALF)*CELL, (sy+HALF)*CELL, CELL, CELL);
+  }
+  blCtx.restore();
+
+  // Collatz points — green
+  blCtx.save();
+  blCtx.fillStyle = 'rgba(34,224,154,0.85)';
+  for (const [sx,sy] of comp.cPts) {
+    blCtx.fillRect((sx+HALF)*CELL-1, (sy+HALF)*CELL-1, CELL+2, CELL+2);
+  }
+  blCtx.restore();
+
+  // Start
+  if (comp.n <= MAXN) {
+    const pos = ulamMap.get(comp.n);
+    if (pos) {
+      const px = (pos[0]+HALF)*CELL+CELL/2, py = (pos[1]+HALF)*CELL+CELL/2;
+      blCtx.save();
+      blCtx.fillStyle='#f7c948'; blCtx.strokeStyle='#fff'; blCtx.lineWidth=1;
+      blCtx.beginPath(); blCtx.arc(px,py,5,0,Math.PI*2); blCtx.fill(); blCtx.stroke();
+      blCtx.restore();
+    }
+  }
+}
+
+// ── VIEWPORT RENDER ───────────────────────────────────────────────────────────
+const viewCanvas = document.getElementById('view-canvas');
+const vCtx = viewCanvas.getContext('2d');
+
+function renderViewport() {
+  vCtx.fillStyle = '#03050d';
+  vCtx.fillRect(0, 0, VIEW, VIEW);
+  vCtx.save();
+  vCtx.translate(panX, panY);
+  vCtx.scale(zoom, zoom);
+  vCtx.imageSmoothingEnabled = false;
+  let src;
+  if (viewMode === 'heatmap') src = offHeatmap;
+  else if (viewMode === 'baseline') src = offBaseline;
+  else src = offSpiral;
+  vCtx.drawImage(src, 0, 0);
+  vCtx.restore();
+
+  // Animation cursor
+  if (animPlaying || animStep > 0) {
+    drawAnimCursor();
+  }
+
+  document.getElementById('zoom-label').textContent = zoom.toFixed(2) + '×';
+  document.getElementById('view-mode-label').textContent = viewMode.toUpperCase();
+  document.getElementById('hm-legend').style.display = viewMode === 'heatmap' ? 'block' : 'none';
+  rafPending = false;
+}
+
+function drawAnimCursor() {
+  if (!currentComputed) return;
+  const seq = currentComputed.seq;
+  const step = Math.min(animStep, seq.length - 1);
+  const v = seq[step];
+  if (v > MAXN) return;
+  const pos = ulamMap.get(v); if (!pos) return;
+  const px = ((pos[0]+HALF)*CELL+CELL/2)*zoom + panX;
+  const py = ((pos[1]+HALF)*CELL+CELL/2)*zoom + panY;
+  vCtx.save();
+  vCtx.strokeStyle = '#f7c948';
+  vCtx.lineWidth = 2;
+  vCtx.globalAlpha = 0.9;
+  const s = 8 * zoom;
+  vCtx.beginPath();
+  vCtx.moveTo(px-s,py); vCtx.lineTo(px+s,py);
+  vCtx.moveTo(px,py-s); vCtx.lineTo(px,py+s);
+  vCtx.stroke();
+  vCtx.beginPath();
+  vCtx.arc(px,py,s*0.7,0,Math.PI*2);
+  vCtx.stroke();
+  vCtx.restore();
+}
+
+function scheduleRender() {
+  if (rafPending) return;
+  rafPending = true;
+  requestAnimationFrame(renderViewport);
+}
+
+// ── ZOOM/PAN ──────────────────────────────────────────────────────────────────
+function applyZoom(newZoom, ox, oy) {
+  newZoom = Math.min(20, Math.max(0.25, newZoom));
+  const ratio = newZoom / zoom;
+  panX = ox - (ox - panX) * ratio;
+  panY = oy - (oy - panY) * ratio;
+  zoom = newZoom;
+  scheduleRender();
+}
+function resetZoom() { zoom=1; panX=0; panY=0; scheduleRender(); }
+
+viewCanvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const rect = viewCanvas.getBoundingClientRect();
+  applyZoom(zoom * (e.deltaY < 0 ? 1.12 : 1/1.12), e.clientX-rect.left, e.clientY-rect.top);
+}, { passive: false });
+
+let dragStart = null;
+viewCanvas.addEventListener('mousedown', e => {
+  dragStart = { mx:e.clientX, my:e.clientY, px:panX, py:panY };
+  viewCanvas.classList.add('dragging');
+});
+window.addEventListener('mousemove', e => {
+  if (!dragStart) return;
+  panX = dragStart.px + (e.clientX - dragStart.mx);
+  panY = dragStart.py + (e.clientY - dragStart.my);
+  scheduleRender();
+});
+window.addEventListener('mouseup', () => { dragStart=null; viewCanvas.classList.remove('dragging'); });
+
+let touchState = null;
+viewCanvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  if (e.touches.length === 1) {
+    touchState = { type:'pan', sx:e.touches[0].clientX, sy:e.touches[0].clientY, px:panX, py:panY };
+  } else if (e.touches.length === 2) {
+    const dx=e.touches[0].clientX-e.touches[1].clientX, dy=e.touches[0].clientY-e.touches[1].clientY;
+    const rect=viewCanvas.getBoundingClientRect();
+    touchState = {
+      type:'pinch', dist0:Math.hypot(dx,dy), zoom0:zoom,
+      midX:(e.touches[0].clientX+e.touches[1].clientX)/2-rect.left,
+      midY:(e.touches[0].clientY+e.touches[1].clientY)/2-rect.top,
+    };
+  }
+}, { passive:false });
+viewCanvas.addEventListener('touchmove', e => {
+  e.preventDefault(); if (!touchState) return;
+  if (touchState.type==='pan' && e.touches.length===1) {
+    panX=touchState.px+(e.touches[0].clientX-touchState.sx);
+    panY=touchState.py+(e.touches[0].clientY-touchState.sy);
+    scheduleRender();
+  } else if (touchState.type==='pinch' && e.touches.length===2) {
+    const dx=e.touches[0].clientX-e.touches[1].clientX, dy=e.touches[0].clientY-e.touches[1].clientY;
+    applyZoom(touchState.zoom0*(Math.hypot(dx,dy)/touchState.dist0), touchState.midX, touchState.midY);
+  }
+}, { passive:false });
+viewCanvas.addEventListener('touchend', ()=>{ touchState=null; }, { passive:false });
+document.getElementById('btn-reset-zoom').addEventListener('click', resetZoom);
+
+// ── SEQUENCE CHART ────────────────────────────────────────────────────────────
+const chartCanvas = document.getElementById('chart-canvas');
+const cCtx = chartCanvas.getContext('2d');
+
+function drawChart(seq) {
+  const cw=chartCanvas.width, ch=chartCanvas.height;
+  cCtx.fillStyle='#070d1c'; cCtx.fillRect(0,0,cw,ch);
+  if (!seq||seq.length===0) return;
+  const data=seq.slice(0,400);
+  const maxV=Math.max(...data);
+  const pad={t:8,r:10,b:22,l:52};
+  const pw=cw-pad.l-pad.r, ph=ch-pad.t-pad.b;
+  // grid
+  cCtx.strokeStyle='#0d1e3a'; cCtx.lineWidth=1;
+  for (let i=0;i<=4;i++) {
+    const y=pad.t+ph*(1-i/4);
+    cCtx.beginPath(); cCtx.moveTo(pad.l,y); cCtx.lineTo(pad.l+pw,y); cCtx.stroke();
+    cCtx.fillStyle='#2a4060'; cCtx.font='8px Space Mono';
+    cCtx.fillText(Math.round(maxV*i/4).toLocaleString(),2,y+3);
+  }
+  // fill
+  cCtx.save();
+  cCtx.beginPath();
+  data.forEach((v,i)=>{
+    const x=pad.l+pw*(i/(data.length-1||1)), y=pad.t+ph*(1-v/maxV);
+    i===0?cCtx.moveTo(x,y):cCtx.lineTo(x,y);
+  });
+  const last=pad.l+pw, firstX=pad.l;
+  cCtx.lineTo(last,pad.t+ph); cCtx.lineTo(firstX,pad.t+ph); cCtx.closePath();
+  cCtx.fillStyle='rgba(34,224,154,0.08)'; cCtx.fill();
+  cCtx.restore();
+  // line
+  cCtx.save();
+  cCtx.beginPath();
+  data.forEach((v,i)=>{
+    const x=pad.l+pw*(i/(data.length-1||1)), y=pad.t+ph*(1-v/maxV);
+    i===0?cCtx.moveTo(x,y):cCtx.lineTo(x,y);
+  });
+  cCtx.strokeStyle='#22e09a'; cCtx.lineWidth=1.5; cCtx.stroke();
+  cCtx.restore();
+  // anim cursor
+  if (animStep > 0 && animStep < data.length) {
+    const ax=pad.l+pw*(animStep/(data.length-1||1));
+    cCtx.save(); cCtx.strokeStyle='#f7c948'; cCtx.lineWidth=1; cCtx.setLineDash([2,2]);
+    cCtx.beginPath(); cCtx.moveTo(ax,pad.t); cCtx.lineTo(ax,pad.t+ph); cCtx.stroke();
+    cCtx.restore();
+  }
+  // x labels
+  cCtx.fillStyle='#2a4060'; cCtx.font='8px Space Mono';
+  [0, Math.floor(data.length/2), data.length-1].forEach(i=>{
+    const x=pad.l+pw*(i/(data.length-1||1));
+    cCtx.fillText(i, x-6, ch-5);
+  });
+}
+
+// ── BASELINE CHART ────────────────────────────────────────────────────────────
+const baselineCanvas = document.getElementById('baseline-canvas');
+const bcCtx = baselineCanvas.getContext('2d');
+
+function drawBaselineChart(comp) {
+  const cw=baselineCanvas.width, ch=baselineCanvas.height;
+  bcCtx.fillStyle='#070d1c'; bcCtx.fillRect(0,0,cw,ch);
+  if (!comp||!comp.baseline) return;
+
+  // Bin values into distance from center
+  const BINS = 40;
+  const cBins = new Array(BINS).fill(0);
+  const rBins = new Array(BINS).fill(0);
+  const maxDist = Math.sqrt(2) * HALF;
+
+  for (const [sx,sy] of comp.cPts) {
+    const d = Math.hypot(sx,sy);
+    const b = Math.min(BINS-1, Math.floor(d/maxDist*BINS));
+    cBins[b]++;
+  }
+  for (const [sx,sy] of comp.baseline) {
+    const d = Math.hypot(sx,sy);
+    const b = Math.min(BINS-1, Math.floor(d/maxDist*BINS));
+    rBins[b]++;
+  }
+  const maxB = Math.max(...cBins, ...rBins, 1);
+  const pad={t:6,r:8,b:18,l:28};
+  const pw=cw-pad.l-pad.r, ph=ch-pad.t-pad.b;
+  const bw=pw/BINS;
+
+  // grid
+  bcCtx.strokeStyle='#0d1e3a'; bcCtx.lineWidth=1;
+  for (let i=0;i<=3;i++) {
+    const y=pad.t+ph*(1-i/3);
+    bcCtx.beginPath(); bcCtx.moveTo(pad.l,y); bcCtx.lineTo(pad.l+pw,y); bcCtx.stroke();
+    bcCtx.fillStyle='#2a4060'; bcCtx.font='7px Space Mono';
+    bcCtx.fillText(Math.round(maxB*i/3),2,y+3);
+  }
+
+  // baseline bars
+  for (let i=0;i<BINS;i++) {
+    const x=pad.l+i*bw, h=ph*rBins[i]/maxB;
+    bcCtx.fillStyle='rgba(232,64,64,0.45)';
+    bcCtx.fillRect(x,pad.t+ph-h,bw-1,h);
+  }
+  // collatz bars
+  for (let i=0;i<BINS;i++) {
+    const x=pad.l+i*bw, h=ph*cBins[i]/maxB;
+    bcCtx.fillStyle='rgba(34,224,154,0.7)';
+    bcCtx.fillRect(x,pad.t+ph-h,bw-1,h);
+  }
+
+  // x axis label
+  bcCtx.fillStyle='#2a4060'; bcCtx.font='7px Space Mono';
+  bcCtx.fillText('odległość od centrum spirali →', pad.l, ch-3);
+}
+
+// ── MÖBIUS CHART ──────────────────────────────────────────────────────────────
+const muCanvas = document.getElementById('mu-canvas');
+const muCtx = muCanvas.getContext('2d');
+
+function drawMuChart(seq) {
+  const cw=muCanvas.width, ch=muCanvas.height;
+  muCtx.fillStyle='#070d1c'; muCtx.fillRect(0,0,cw,ch);
+  if (!seq||seq.length===0) return;
+  const data=seq.slice(0,400).map(v => v<=MAXN ? muSieve[v] : 0);
+  const pad={t:4,r:8,b:14,l:20};
+  const pw=cw-pad.l-pad.r, ph=ch-pad.t-pad.b;
+  const mid=pad.t+ph/2;
+  // center line
+  muCtx.strokeStyle='#0d1e3a'; muCtx.lineWidth=1;
+  muCtx.beginPath(); muCtx.moveTo(pad.l,mid); muCtx.lineTo(pad.l+pw,mid); muCtx.stroke();
+  // bars
+  const bw=Math.max(1, pw/data.length);
+  data.forEach((mu,i)=>{
+    const x=pad.l+i*bw;
+    let col;
+    if (mu===1) col='#38b4ff';
+    else if (mu===-1) col='#d040b8';
+    else col='#142540';
+    muCtx.fillStyle=col;
+    if (mu===1) muCtx.fillRect(x, mid-ph/2, bw-0.5, ph/2);
+    else if (mu===-1) muCtx.fillRect(x, mid, bw-0.5, ph/2);
+    else muCtx.fillRect(x, mid-1, bw-0.5, 2);
+  });
+  muCtx.fillStyle='#2a4060'; muCtx.font='7px Space Mono';
+  muCtx.fillText('+1',2,pad.t+8);
+  muCtx.fillText('-1',2,ch-pad.b);
+  muCtx.fillText('μ(n)',2,mid+3);
+}
+
+// ── UPDATE UI ─────────────────────────────────────────────────────────────────
+function updateStatus(comp) {
+  const el=document.getElementById('status-bar');
+  if (!comp) { el.innerHTML='Wpisz n i kliknij GO…'; return; }
+  let h=`<span>kroki: <b>${comp.seq.length}</b></span>`;
+  h+=`<span>na spirali: <b>${comp.cVals.length}</b></span>`;
+  h+=`<span>unikalne: <b>${comp.uniq.length}</b></span>`;
+  h+=`<span>max: <b>${Math.max(...comp.seq).toLocaleString()}</b></span>`;
+  comp.circles.forEach((c,i)=>
+    h+=`<span class="sc" style="color:${CIRC_COLS[i]}">○${i+1} r=${c.r.toFixed(1)}</span>`);
+  el.innerHTML=h;
+}
+
+// ── THEORETICAL MAX CIRCLES ───────────────────────────────────────────────────
+// Max non-overlapping circles from k points: C(k,3) combinations but practically
+// limited by RANSAC iterations × topN; we report both theoretical bound and actual
+function theoreticalMaxCircles(pts, topN) {
+  if (pts.length < 3) return 0;
+  // Upper bound: floor(pts.length / minInliers) — each circle needs ≥ minIn points
+  const minIn = parseInt(document.getElementById('sl-min').value, 10);
+  return Math.min(topN, Math.floor(pts.length / minIn));
+}
+
+function updateStats(comp) {
+  if (!comp) return;
+  document.getElementById('si-len').textContent   = comp.seq.length.toLocaleString();
+  document.getElementById('si-max').textContent   = Math.max(...comp.seq).toLocaleString();
+  const peakIdx = comp.seq.indexOf(Math.max(...comp.seq));
+  document.getElementById('si-peak').textContent  = peakIdx;
+  document.getElementById('si-out').textContent   = comp.seq.filter(v=>v>MAXN).length;
+  document.getElementById('si-in').textContent    = comp.cVals.length;
+  document.getElementById('si-uniq').textContent  = comp.uniq.length;
+
+  // ── RANSAC full detail ──
+  const minIn  = parseInt(document.getElementById('sl-min').value,10);
+  const topN   = parseInt(document.getElementById('sl-topn').value,10);
+  const iters  = parseInt(document.getElementById('sl-iter').value,10);
+  const eps    = parseFloat(document.getElementById('sl-eps').value);
+  const theMax = theoreticalMaxCircles(comp.uniq, topN);
+
+  // Badge: znalezione / możliwe
+  document.getElementById('ransac-run-badge').textContent =
+    `znaleziono ${comp.circles.length} / maks ~${theMax} (topN=${topN})`;
+
+  const rb = document.getElementById('ransac-stats');
+  if (comp.circles.length === 0) {
+    rb.innerHTML = '<div style="color:var(--accent2);font-size:10px;padding:4px 0">Brak okręgów — spróbuj ↑ε lub ↓minIn</div>';
+  } else {
+    rb.innerHTML = comp.circles.map((c,i) => {
+      // Hebrew letters for inlier points
+      const hebrewLabels = c.inliers.map((pt, hi) => {
+        const letter = HEBREW[hi % HEBREW.length];
+        return `<span style="color:${CIRC_COLS[i]};margin-right:2px">${letter}(${pt[0]},${pt[1]})</span>`;
+      }).join(' ');
+
+      return `
+      <div style="border-left:2px solid ${CIRC_COLS[i]};padding-left:6px;margin-bottom:8px">
+        <div class="stat-row">
+          <span class="sk" style="color:${CIRC_COLS[i]}">Okrąg ${i+1}</span>
+          <span class="sv" style="color:${CIRC_COLS[i]}">${c.count} inlierów</span>
+        </div>
+        <div class="stat-row"><span class="sk">  promień r</span><span class="sv">${c.r.toFixed(4)}</span></div>
+        <div class="stat-row"><span class="sk">  środek cx</span><span class="sv">${c.cx.toFixed(4)}</span></div>
+        <div class="stat-row"><span class="sk">  środek cy</span><span class="sv">${c.cy.toFixed(4)}</span></div>
+        <div class="stat-row"><span class="sk">  obwód</span><span class="sv">${(2*Math.PI*c.r).toFixed(3)} jedn.</span></div>
+        <div class="stat-row"><span class="sk">  pole</span><span class="sv">${(Math.PI*c.r*c.r).toFixed(3)} jedn²</span></div>
+        <div class="stat-row"><span class="sk">  inlierzy/teor.</span><span class="sv">${c.count}/${Math.floor(comp.uniq.length/minIn)}</span></div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Hebrew letter → point map ──
+  const hmDiv = document.getElementById('ransac-hebrew-map');
+  if (comp.circles.length === 0) {
+    hmDiv.innerHTML = '';
+  } else {
+    let mapHtml = `<div style="font-size:9px;color:var(--muted2);letter-spacing:.5px;margin-bottom:4px;text-transform:uppercase">Mapa liter (inliery):</div>`;
+    comp.circles.forEach((c,i) => {
+      mapHtml += `<div style="margin-bottom:4px">
+        <span style="color:${CIRC_COLS[i]};font-size:9px">○${i+1}:</span>
+        <span style="font-size:9px;color:var(--text);line-height:1.8;word-break:break-all">`;
+      c.inliers.forEach((pt, hi) => {
+        const letter = HEBREW[hi % HEBREW.length];
+        const n = [...ulamMap.entries()].find(([k,v]) => v[0]===pt[0] && v[1]===pt[1]);
+        const nVal = n ? n[0] : '?';
+        mapHtml += `<span title="n=${nVal}, pos=(${pt[0]},${pt[1]})" style="margin-right:5px;cursor:help;color:${CIRC_COLS[i]};opacity:.85">${letter}<sub style="color:var(--muted2);font-size:7px">${nVal}</sub></span>`;
+      });
+      mapHtml += `</span></div>`;
+    });
+    hmDiv.innerHTML = mapHtml;
+  }
+
+  // ── Historia przebiegów ──
+  const runTs = new Date().toLocaleTimeString('pl-PL', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  ransacHistory.unshift({
+    ts: runTs,
+    n: comp.n,
+    eps, iters, minIn, topN,
+    found: comp.circles.length,
+    theMax,
+    circles: comp.circles.map(c=>({r:c.r.toFixed(2),cx:c.cx.toFixed(1),cy:c.cy.toFixed(1),count:c.count}))
+  });
+  if (ransacHistory.length > 8) ransacHistory.pop();
+
+  const histDiv = document.getElementById('ransac-history');
+  let histHtml = `<div style="font-size:9px;color:var(--muted2);letter-spacing:.5px;margin-bottom:4px;text-transform:uppercase">Historia przebiegów GO:</div>`;
+  ransacHistory.forEach((run, ri) => {
+    const isNew = ri === 0;
+    histHtml += `<div style="font-size:9px;padding:3px 0;border-bottom:1px solid #080f1c;${isNew?'color:var(--text)':'color:var(--muted2)'}">
+      <span style="color:var(--accent)">${run.ts}</span>
+      <span style="margin:0 4px">n=${run.n}</span>
+      <span style="color:var(--accent3)">${run.found}ok</span>
+      <span style="margin:0 3px;opacity:.5">/~${run.theMax}</span>
+      <span style="opacity:.6">ε=${run.eps} it=${run.iters} min=${run.minIn}</span>
+      ${run.circles.map((c,ci)=>`<span style="color:${CIRC_COLS[ci]};margin-left:4px">r${ci+1}=${c.r}</span>`).join('')}
+    </div>`;
+  });
+  histDiv.innerHTML = histHtml;
+
+  // ── Möbius stats ──
+  const inSeq = comp.seq.filter(v=>v<=MAXN);
+  const muVals = inSeq.map(v=>muSieve[v]);
+  const mPos   = muVals.filter(v=>v===1).length;
+  const mNeg   = muVals.filter(v=>v===-1).length;
+  const mZero  = muVals.filter(v=>v===0).length;
+  const mSum   = muVals.reduce((a,b)=>a+b,0);
+  document.getElementById('mu-pos-val').textContent   = mPos + ` (${(100*mPos/inSeq.length).toFixed(1)}%)`;
+  document.getElementById('mu-neg-val').textContent   = mNeg + ` (${(100*mNeg/inSeq.length).toFixed(1)}%)`;
+  document.getElementById('mu-zero-val').textContent  = mZero + ` (${(100*mZero/inSeq.length).toFixed(1)}%)`;
+  document.getElementById('mu-sum-val').textContent   = mSum;
+  const sqFree = mPos+mNeg;
+  document.getElementById('mu-sq-val').textContent    = sqFree + ` (${(100*sqFree/inSeq.length).toFixed(1)}%)`;
+
+  // ── Baseline comparison ──
+  const cCoverage = (100*comp.uniq.length / MAXN).toFixed(3) + '%';
+  const rCoverage = (100*comp.baseline.length / MAXN).toFixed(3) + '%';
+  const diff = comp.uniq.length - comp.baseline.length;
+  document.getElementById('bl-collatz').textContent   = cCoverage + ` (${comp.uniq.length})`;
+  document.getElementById('bl-random').textContent    = rCoverage + ` (${comp.baseline.length})`;
+  document.getElementById('bl-diff').textContent      = (diff>0?'+':'')+diff;
+  document.getElementById('bl-clusters').textContent  = countClusters(comp.uniq);
+  document.getElementById('bl-rclusters').textContent = countClusters(comp.baseline);
+}
+
+// ── ANIMATION ─────────────────────────────────────────────────────────────────
+let animIntervalId = null;
+
+function animTick() {
+  if (!currentComputed) { stopAnim(); return; }
+  const maxStep = currentComputed.seq.length - 1;
+  if (animStep >= maxStep) { stopAnim(); return; }
+  animStep++;
+  updateAnimUI();
+  // redraw spiral with step limit
+  drawSpiralOffscreen(currentComputed,
+    document.getElementById('chk-mu').checked,
+    document.getElementById('chk-path').checked,
+    false,
+    document.getElementById('chk-numbers').checked,
+    animStep + 1
+  );
+  scheduleRender();
+  drawChart(currentComputed.seq);
+}
+
+function startAnim() {
+  if (!currentComputed) return;
+  animPlaying = true;
+  document.getElementById('btn-play').textContent = '⏸';
+  animIntervalId = setInterval(animTick, Math.round(1000/animSpeed));
+}
+function stopAnim() {
+  animPlaying = false;
+  document.getElementById('btn-play').textContent = '▶';
+  if (animIntervalId) { clearInterval(animIntervalId); animIntervalId=null; }
+}
+function updateAnimUI() {
+  if (!currentComputed) return;
+  const maxStep = currentComputed.seq.length - 1;
+  document.getElementById('anim-slider').max = maxStep;
+  document.getElementById('anim-slider').value = animStep;
+  document.getElementById('anim-step').textContent = `krok ${animStep}/${maxStep}`;
+}
+
+document.getElementById('btn-play').addEventListener('click', ()=>{
+  if (animPlaying) stopAnim(); else startAnim();
+});
+document.getElementById('btn-anim-reset').addEventListener('click', ()=>{
+  stopAnim(); animStep=0;
+  if (currentComputed) {
+    drawSpiralOffscreen(currentComputed,
+      document.getElementById('chk-mu').checked,
+      document.getElementById('chk-path').checked,
+      document.getElementById('chk-circles').checked,
+      document.getElementById('chk-numbers').checked
+    );
+    scheduleRender();
+  }
+  updateAnimUI();
+  drawChart(currentComputed?.seq);
+});
+document.getElementById('anim-slider').addEventListener('input', e=>{
+  stopAnim();
+  animStep = parseInt(e.target.value);
+  if (currentComputed) {
+    drawSpiralOffscreen(currentComputed,
+      document.getElementById('chk-mu').checked,
+      document.getElementById('chk-path').checked,
+      false,
+      document.getElementById('chk-numbers').checked,
+      animStep + 1
+    );
+    scheduleRender();
+  }
+  updateAnimUI();
+  drawChart(currentComputed?.seq);
+});
+document.getElementById('sl-speed').addEventListener('input', e=>{
+  animSpeed = parseInt(e.target.value);
+  document.getElementById('lbl-speed').textContent = animSpeed+'/s';
+  if (animPlaying) { stopAnim(); startAnim(); }
+});
+
+// ── VIEW MODES ────────────────────────────────────────────────────────────────
+document.querySelectorAll('.vmode-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.vmode-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    viewMode = btn.dataset.mode;
+    scheduleRender();
+  });
+});
+
+// ── TABS ──────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    const t = tab.dataset.tab;
+    document.getElementById('anim-bar').style.display = t==='anim' ? 'flex' : 'none';
+    if (t==='heatmap') { viewMode='heatmap'; document.querySelector('[data-mode=heatmap]').classList.add('active'); }
+    else if (t==='baseline') { viewMode='baseline'; document.querySelector('[data-mode=baseline]').classList.add('active'); }
+    else if (t==='main') { viewMode='spiral'; document.querySelector('[data-mode=spiral]').classList.add('active'); }
+    document.querySelectorAll('.vmode-btn').forEach(b=>{
+      b.classList.toggle('active', b.dataset.mode===viewMode);
+    });
+    scheduleRender();
+  });
+});
+
+// ── CHECKBOXES ────────────────────────────────────────────────────────────────
+['chk-mu','chk-path','chk-circles','chk-numbers'].forEach(id=>{
+  document.getElementById(id).addEventListener('change', ()=>{
+    if (!currentComputed) return;
+    drawSpiralOffscreen(currentComputed,
+      document.getElementById('chk-mu').checked,
+      document.getElementById('chk-path').checked,
+      document.getElementById('chk-circles').checked,
+      document.getElementById('chk-numbers').checked
+    );
+    scheduleRender();
+  });
+});
+
+// ── SLIDERS ───────────────────────────────────────────────────────────────────
+function bindSlider(id,lbl){ const s=document.getElementById(id),l=document.getElementById(lbl); l.textContent=s.value; s.addEventListener('input',()=>l.textContent=s.value); }
+bindSlider('sl-eps','lbl-eps');
+bindSlider('sl-min','lbl-min');
+bindSlider('sl-iter','lbl-iter');
+bindSlider('sl-topn','lbl-topn');
+
+// ── PRESETS ───────────────────────────────────────────────────────────────────
+const presetsRow = document.getElementById('presets-row');
+PRESETS.forEach(p=>{
+  const el = document.createElement('button');
+  el.className = 'preset-tag';
+  el.innerHTML = `<span class="pn">${p.label}</span><span class="pd">${p.desc}</span>`;
+  el.addEventListener('click', ()=>{
+    document.getElementById('inp-n').value = p.n;
+    compute();
+  });
+  presetsRow.appendChild(el);
+});
+
+// ── EXPORT PNG ────────────────────────────────────────────────────────────────
+document.getElementById('btn-export-png').addEventListener('click', ()=>{
+  const link = document.createElement('a');
+  link.download = `collatz-ulam-${document.getElementById('inp-n').value}.png`;
+  link.href = viewCanvas.toDataURL('image/png');
+  link.click();
+});
+
+// ── EXPORT TXT ────────────────────────────────────────────────────────────────
+document.getElementById('btn-export-txt').addEventListener('click', () => {
+  if (!currentComputed) {
+    alert('Najpierw oblicz sekwencję (przycisk GO).');
+    return;
+  }
+  const comp = currentComputed;
+  const ts    = new Date().toLocaleString('pl-PL');
+  const eps   = parseFloat(document.getElementById('sl-eps').value);
+  const minIn = parseInt(document.getElementById('sl-min').value, 10);
+  const iters = parseInt(document.getElementById('sl-iter').value, 10);
+  const topN  = parseInt(document.getElementById('sl-topn').value, 10);
+  const theMax = theoreticalMaxCircles(comp.uniq, topN);
+
+  const L = [];   // linie raportu
+
+  // ── nagłówek ──────────────────────────────────────────────────────────────
+  L.push('════════════════════════════════════════════════════════════');
+  L.push('  Collatz × Ulam Spiral + RANSAC — RAPORT WYNIKÓW');
+  L.push(`  Wygenerowano : ${ts}`);
+  L.push('════════════════════════════════════════════════════════════');
+  L.push('');
+
+  // ── parametry ─────────────────────────────────────────────────────────────
+  L.push('── PARAMETRY WEJŚCIOWE ──────────────────────────────────────');
+  L.push(`  n startowa          = ${comp.n}`);
+  L.push(`  Rozmiar spirali     = ${SZ}×${SZ} = ${MAXN.toLocaleString()} komórek`);
+  L.push(`  ε (tolerancja)      = ${eps}`);
+  L.push(`  minIn               = ${minIn}`);
+  L.push(`  Iteracje RANSAC     = ${iters}`);
+  L.push(`  Szukane okręgi      = ${topN}`);
+  L.push('');
+
+  // ── wyniki główne ─────────────────────────────────────────────────────────
+  L.push('── WYNIKI GŁÓWNE ────────────────────────────────────────────');
+  L.push(`  Długość sekwencji   = ${comp.seq.length}`);
+  L.push(`  Wartość maksymalna  = ${Math.max(...comp.seq).toLocaleString()}`);
+  L.push(`  Szczyt na kroku     = ${comp.seq.indexOf(Math.max(...comp.seq))}`);
+  L.push(`  Punkty na spirali   = ${comp.cPts.length}`);
+  L.push(`  Wartości poza sp.   = ${comp.seq.filter(v => v > MAXN).length}`);
+  L.push(`  Unikalne komórki    = ${comp.uniq.length}`);
+  L.push(`  Pokrycie spirali    = ${(100 * comp.uniq.length / MAXN).toFixed(4)}%`);
+  L.push(`  Znaleziono okręgów  = ${comp.circles.length}`);
+  L.push(`  Teoretyczny maks    = ~${theMax}  (floor(uniq / minIn), topN cap)`);
+  L.push(`  Uwaga: RANSAC jest losowy — każde GO może dać inne wyniki!`);
+  L.push('');
+  L.push('  Pierwsze 100 wartości sekwencji:');
+  // Zawijamy po separatorach → żeby nie ciąć liczb w połowie
+  const seqParts = comp.seq.slice(0, 100).map(String);
+  let seqLine = '  ';
+  for (let i = 0; i < seqParts.length; i++) {
+    const add = seqParts[i] + (i < seqParts.length - 1 ? ' \u2192 ' : '');
+    if (seqLine.length + add.length > 112 && seqLine.trim().length > 0) {
+      L.push(seqLine.trimEnd());
+      seqLine = '  ' + add;
+    } else {
+      seqLine += add;
+    }
+  }
+  if (seqLine.trim().length > 0) L.push(seqLine.trimEnd());
+  L.push('');
+
+  // ── okręgi RANSAC ─────────────────────────────────────────────────────────
+  L.push('── OKRĘGI RANSAC ────────────────────────────────────────────');
+  if (comp.circles.length === 0) {
+    L.push('  Brak okręgów. Spróbuj: ↑ε, ↓minIn, ↑iter');
+  } else {
+    comp.circles.forEach((c, i) => {
+      L.push(`  Okrąg ${i + 1}  [kolor: ${CIRC_COLS[i]}]`);
+      L.push(`    Promień r        = ${c.r.toFixed(6)}`);
+      L.push(`    Środek cx        = ${c.cx.toFixed(6)}`);
+      L.push(`    Środek cy        = ${c.cy.toFixed(6)}`);
+      L.push(`    Obwód            = ${(2 * Math.PI * c.r).toFixed(6)}`);
+      L.push(`    Pole             = ${(Math.PI * c.r * c.r).toFixed(6)}`);
+      L.push(`    Inlierów         = ${c.count}`);
+      L.push('');
+      L.push('    Mapa liter hebrajskich → inliery okręgu:');
+      L.push('    (litera  n_val  poz_spirali  μ(n))');
+      c.inliers.forEach((pt, hi) => {
+        const letter = HEBREW[hi % HEBREW.length];
+        // szukamy n odpowiadającego tej komórce — budujemy odwrotną mapę lazily
+        // iterujemy po ulamMap (max 63 001 wpisów, szybko)
+        let nVal = '?';
+        for (const [k, v] of ulamMap) {
+          if (v[0] === pt[0] && v[1] === pt[1]) { nVal = k; break; }
+        }
+        const mu = (nVal !== '?') ? muSieve[nVal] : '?';
+        const muSym = mu === 1 ? '+1' : mu === -1 ? '-1' : ' 0';
+        L.push(`      ${letter.padEnd(2)}  n=${String(nVal).padStart(6)}  (${String(pt[0]).padStart(4)},${String(pt[1]).padStart(4)})  μ=${muSym}`);
+      });
+      L.push('');
+    });
+  }
+
+  // ── Möbius ────────────────────────────────────────────────────────────────
+  L.push('── MÖBIUS μ(n) w sekwencji ──────────────────────────────────');
+  const inSeq = comp.seq.filter(v => v <= MAXN);
+  let mPos = 0, mNeg = 0, mZero = 0;
+  for (const v of inSeq) {
+    const m = muSieve[v];
+    if (m === 1) mPos++; else if (m === -1) mNeg++; else mZero++;
+  }
+  const totalIn = inSeq.length || 1;
+  const mSum = mPos - mNeg;   // suma = liczba +1 minus liczba -1
+  L.push(`  μ = +1  (wolne od kw.)  = ${mPos}  (${(100 * mPos / totalIn).toFixed(1)}%)`);
+  L.push(`  μ = -1                  = ${mNeg}  (${(100 * mNeg / totalIn).toFixed(1)}%)`);
+  L.push(`  μ =  0  (ma kw. czyn.)  = ${mZero}  (${(100 * mZero / totalIn).toFixed(1)}%)`);
+  L.push(`  Suma μ                  = ${mSum}`);
+  L.push(`  |μ| = 1 (wolne od kw.)  = ${mPos + mNeg}  (${(100 * (mPos + mNeg) / totalIn).toFixed(1)}%)`);
+  L.push('');
+  L.push('  μ dla kolejnych wartości sekwencji (≤ 400, format: n:μ):');
+  const muTokens = inSeq.slice(0, 400).map(v => {
+    const m = muSieve[v];
+    return `${v}:${m === 1 ? '+' : m === -1 ? '-' : '0'}`;
+  });
+  let muLine = '  ';
+  for (const tok of muTokens) {
+    const add = tok + '  ';
+    if (muLine.length + add.length > 112 && muLine.trim().length > 0) {
+      L.push(muLine.trimEnd());
+      muLine = '  ' + add;
+    } else {
+      muLine += add;
+    }
+  }
+  if (muLine.trim().length > 0) L.push(muLine.trimEnd());
+  L.push('');
+
+  // ── baseline ──────────────────────────────────────────────────────────────
+  L.push('── PORÓWNANIE Z LOSOWYM BASELINE ────────────────────────────');
+  const blLen = comp.baseline ? comp.baseline.length : 0;
+  L.push(`  Collatz pokrycie     : ${comp.uniq.length} pkt  (${(100 * comp.uniq.length / MAXN).toFixed(4)}% spirali)`);
+  L.push(`  Losowe pokrycie      : ${blLen} pkt  (${(100 * blLen / MAXN).toFixed(4)}% spirali)`);
+  L.push(`  Różnica              : ${comp.uniq.length - blLen}`);
+  L.push(`  Klastry Collatz      : ${countClusters(comp.uniq)}`);
+  L.push(`  Klastry losowe       : ${countClusters(comp.baseline || [])}`);
+  L.push('');
+
+  // ── historia przebiegów ───────────────────────────────────────────────────
+  if (ransacHistory.length > 0) {
+    L.push('── HISTORIA PRZEBIEGÓW GO (bieżąca sesja) ───────────────────');
+    L.push('  ' + ['Czas    ','n       ','znal.','maks','  ε','  iter','minIn'].join('  '));
+    L.push('  ' + '─'.repeat(60));
+    ransacHistory.forEach(run => {
+      L.push(
+        `  [${run.ts}]  n=${String(run.n).padEnd(8)}  ${run.found}/${run.theMax}  ` +
+        `ε=${run.eps}  iter=${run.iters}  minIn=${run.minIn}`
+      );
+      run.circles.forEach((c, ci) => {
+        L.push(
+          `    ${String(ci+1)+'.'}  r=${String(c.r).padEnd(7)}  ` +
+          `cx=${String(c.cx).padStart(7)}  cy=${String(c.cy).padStart(7)}  inl.=${c.count}`
+        );
+      });
+    });
+    L.push('');
+  }
+
+  // ── stopka ────────────────────────────────────────────────────────────────
+  L.push('════════════════════════════════════════════════════════════');
+  L.push('  Collatz × Ulam Ultimate');
+  L.push('════════════════════════════════════════════════════════════');
+
+  // ── zapis pliku ───────────────────────────────────────────────────────────
+  const blob = new Blob([L.join('\n')], { type: 'text/plain;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `collatz_n${comp.n}_${new Date().toISOString().slice(0, 10)}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+
+  // ── feedback w status barze ───────────────────────────────────────────────
+  const sb = document.getElementById('status-bar');
+  const prev = sb.innerHTML;
+  sb.innerHTML = '<span style="color:var(--accent3)">✓ Plik TXT zapisany pomyślnie!</span>';
+  setTimeout(() => { sb.innerHTML = prev; }, 2500);
+});
+
+// ── HELP ──────────────────────────────────────────────────────────────────────
+document.getElementById('btn-help-open').addEventListener('click', ()=>{
+  document.getElementById('help-overlay').classList.add('open');
+});
+document.getElementById('help-close').addEventListener('click', ()=>{
+  document.getElementById('help-overlay').classList.remove('open');
+});
+document.getElementById('help-overlay').addEventListener('click', e=>{
+  if (e.target===document.getElementById('help-overlay'))
+    document.getElementById('help-overlay').classList.remove('open');
+});
+
+// ── COMPUTE ───────────────────────────────────────────────────────────────────
+function compute() {
+  const n = parseInt(document.getElementById('inp-n').value, 10);
+  if (isNaN(n)||n<1||n>9999999) return;
+  const eps    = parseFloat(document.getElementById('sl-eps').value);
+  const minIn  = parseInt(document.getElementById('sl-min').value,10);
+  const iters  = parseInt(document.getElementById('sl-iter').value,10);
+  const topN   = parseInt(document.getElementById('sl-topn').value,10);
+  const showMu = document.getElementById('chk-mu').checked;
+  const showPa = document.getElementById('chk-path').checked;
+  const showCi = document.getElementById('chk-circles').checked;
+  const showNu = document.getElementById('chk-numbers').checked;
+
+  stopAnim(); animStep=0;
+  document.getElementById('overlay').style.display='flex';
+  document.getElementById('btn-go').disabled=true;
+
+  setTimeout(()=>{
+    const seq = collatzSeq(n);
+    const cPts=[],cVals=[];
+    for (const v of seq) {
+      if (v<=MAXN) { const pos=ulamMap.get(v); if (pos) { cPts.push(pos); cVals.push(v); } }
+    }
+    const uniq=[...new Map(cPts.map(p=>[`${p[0]},${p[1]}`,p])).values()];
+    const circles=findCircles(uniq,eps,iters,minIn,topN);
+    const heatmap=buildHeatmap(seq);
+    const baseline=buildBaseline(uniq.length);
+
+    currentComputed={seq,cPts,cVals,uniq,circles,heatmap,baseline,n};
+
+    drawSpiralOffscreen(currentComputed,showMu,showPa,showCi,showNu);
+    drawHeatmapOffscreen(currentComputed);
+    drawBaselineOffscreen(currentComputed);
+    scheduleRender();
+    drawChart(seq);
+    drawBaselineChart(currentComputed);
+    drawMuChart(seq);
+    updateStatus(currentComputed);
+    updateStats(currentComputed);
+    updateAnimUI();
+
+    document.getElementById('overlay').style.display='none';
+    document.getElementById('btn-go').disabled=false;
+  }, 60);
+}
+
+// ── GO / ENTER ────────────────────────────────────────────────────────────────
+document.getElementById('btn-go').addEventListener('click', compute);
+document.getElementById('inp-n').addEventListener('keydown', e=>{ if(e.key==='Enter') compute(); });
+
+// ── INITIAL ───────────────────────────────────────────────────────────────────
+drawSpiralOffscreen(null, true, true, true, false);
+scheduleRender();
+setTimeout(compute, 120);
+</script>
+</body>
+</html>

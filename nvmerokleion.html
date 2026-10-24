@@ -1,1 +1,1597 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>NVMEROKLEIΔON — Text Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@400;500;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --obsidian:#0c0d10;
+    --panel:#15171d;
+    --panel-2:#1b1e26;
+    --hairline:#2b2e37;
+    --brass:#c9a15a;
+    --brass-dim:#8a7040;
+    --violet:#8b7fd6;
+    --violet-dim:#5d5590;
+    --parchment:#e9e5da;
+    --muted:#8a8d97;
+    --red:#c06a5c;
+    --green:#7fae8a;
+    --radius:10px;
+    --sans: 'IBM Plex Sans', sans-serif;
+    --serif: 'Frank Ruhl Libre', serif;
+    --mono: 'IBM Plex Mono', monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--obsidian);color:var(--parchment);font-family:var(--sans);}
+  body{
+    background-image:
+      radial-gradient(ellipse at 20% -10%, rgba(139,127,214,0.08), transparent 55%),
+      radial-gradient(ellipse at 90% 0%, rgba(201,161,90,0.07), transparent 45%);
+  }
+  .heb{direction:rtl;unicode-bidi:isolate;font-family:var(--serif);}
+  ::selection{background:var(--violet-dim);}
+  .wrap{max-width:720px;margin:0 auto;padding:14px 14px 60px;}
+  header.top{padding:10px 2px 16px;border-bottom:1px solid var(--hairline);margin-bottom:14px;}
+  .brandrow{display:flex;align-items:center;gap:10px;}
+  .brandrow svg{flex:0 0 auto;}
+  h1{font-family:var(--serif);font-weight:700;letter-spacing:0.04em;font-size:1.32rem;margin:0;color:var(--parchment);}
+  .sub{color:var(--muted);font-size:0.82rem;margin-top:4px;line-height:1.4;}
+  .accent-brass{color:var(--brass);}
+  .accent-violet{color:var(--violet);}
 
+  .panel{background:var(--panel);border:1px solid var(--hairline);border-radius:var(--radius);padding:14px;margin-bottom:14px;}
+  .panel h2{font-family:var(--serif);font-size:1.02rem;margin:0 0 10px;font-weight:500;color:var(--parchment);}
+  .panel h2 .n{color:var(--brass);font-family:var(--mono);font-size:0.82rem;margin-right:6px;}
+  label{font-size:0.78rem;color:var(--muted);display:block;margin-bottom:4px;}
+  textarea{
+    width:100%;min-height:88px;background:var(--panel-2);color:var(--parchment);
+    border:1px solid var(--hairline);border-radius:8px;padding:10px;font-family:var(--serif);font-size:1.15rem;
+    resize:vertical;
+  }
+  textarea:focus,button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--violet);outline-offset:1px;}
+  .row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+  button{
+    font-family:var(--sans);font-size:0.8rem;background:var(--panel-2);color:var(--parchment);
+    border:1px solid var(--hairline);border-radius:20px;padding:8px 14px;cursor:pointer;min-height:36px;
+  }
+  button:hover{border-color:var(--brass-dim);}
+  button.primary{background:var(--brass);color:#1a1508;border-color:var(--brass);font-weight:600;}
+  button.primary:hover{background:#d8ae66;}
+  button.ghost{background:transparent;}
+  button:disabled{opacity:0.4;cursor:default;}
+  .chk{display:flex;align-items:center;gap:6px;font-size:0.78rem;color:var(--muted);}
+
+  nav.tabs{display:flex;gap:6px;overflow-x:auto;padding:2px 2px 10px;margin-bottom:2px;-webkit-overflow-scrolling:touch;}
+  nav.tabs::-webkit-scrollbar{height:0;}
+  nav.tabs button{white-space:nowrap;flex:0 0 auto;}
+  nav.tabs button.active{background:var(--violet);color:#100e1c;border-color:var(--violet);font-weight:600;}
+
+  .tabpanel{display:none;}
+  .tabpanel.active{display:block;}
+  .empty{color:var(--muted);font-size:0.85rem;padding:18px 4px;text-align:center;}
+
+  table{width:100%;border-collapse:collapse;font-size:0.8rem;}
+  th,td{text-align:left;padding:5px 6px;border-bottom:1px solid var(--hairline);}
+  th{color:var(--muted);font-weight:500;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.04em;}
+  td.heb-cell{font-family:var(--serif);font-size:1.05rem;direction:rtl;}
+  .scrolltable{max-height:340px;overflow-y:auto;border:1px solid var(--hairline);border-radius:8px;}
+  .scrolltable table{margin:0;}
+
+  .statgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+  .stat{background:var(--panel-2);border:1px solid var(--hairline);border-radius:8px;padding:10px;}
+  .stat .lbl{font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;}
+  .stat .val{font-family:var(--mono);font-size:1.15rem;color:var(--brass);margin-top:2px;}
+  .stat .val.v{color:var(--violet);}
+
+  canvas{width:100%;display:block;border-radius:8px;background:var(--panel-2);touch-action:none;}
+  .readout{font-family:var(--mono);font-size:0.76rem;color:var(--muted);margin-top:8px;min-height:1.2em;}
+  .readout b{color:var(--parchment);}
+
+  .slider-row{display:flex;flex-direction:column;gap:2px;margin-bottom:12px;}
+  .slider-row .top{display:flex;justify-content:space-between;font-size:0.76rem;color:var(--muted);}
+  input[type=range]{width:100%;accent-color:var(--violet);}
+  select{font-family:var(--sans);background:var(--panel-2);color:var(--parchment);border:1px solid var(--hairline);border-radius:8px;padding:8px;font-size:0.82rem;width:100%;}
+
+  .hebline{font-family:var(--serif);font-size:1.3rem;direction:rtl;line-height:1.6;padding:10px;background:var(--panel-2);border-radius:8px;border:1px solid var(--hairline);word-break:break-word;}
+  .hebline.small{font-size:1.05rem;}
+  .caption{font-size:0.72rem;color:var(--muted);margin-top:5px;}
+
+  .orbitchip{display:inline-block;background:var(--panel-2);border:1px solid var(--hairline);border-radius:6px;padding:3px 8px;margin:2px;font-family:var(--serif);font-size:1rem;direction:rtl;}
+  .layer-core{border-color:var(--brass);}
+  .layer-axes{border-color:var(--violet);}
+  .layer-faces{border-color:var(--green);}
+  .layer-corners{border-color:var(--red);}
+
+  .barchart{display:flex;align-items:flex-end;gap:2px;height:90px;}
+  .barchart .bar{flex:1;background:var(--brass-dim);border-radius:2px 2px 0 0;min-width:2px;}
+  .barchart .bar.hl{background:var(--violet);}
+
+  .logbox{font-family:var(--mono);font-size:0.74rem;color:var(--muted);background:var(--panel-2);border:1px solid var(--hairline);border-radius:8px;padding:8px;max-height:140px;overflow-y:auto;}
+  .logbox div.cur{color:var(--brass);}
+
+  footer.note{color:var(--muted);font-size:0.72rem;line-height:1.5;margin-top:24px;padding-top:14px;border-top:1px solid var(--hairline);}
+  footer.note b{color:var(--parchment);}
+
+  .modegrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;}
+  .modebtn{border-radius:8px;text-align:left;padding:10px;}
+  .modebtn b{display:block;color:var(--parchment);font-family:var(--mono);font-size:.72rem;margin-bottom:3px;}
+  .modebtn span{color:var(--muted);font-size:.72rem;}
+  .modebtn.active{border-color:var(--violet);background:rgba(139,127,214,.12);}
+  .pillrow{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
+  .pill{font-family:var(--mono);font-size:.7rem;border:1px solid var(--hairline);border-radius:999px;padding:4px 7px;color:var(--muted);}
+  .diff-ok{color:var(--green);}.diff-no{color:var(--red);}
+  .kv{display:grid;grid-template-columns:1fr auto;gap:4px 10px;font-size:.76rem;}
+  .kv div:nth-child(odd){color:var(--muted);}.kv div:nth-child(even){font-family:var(--mono);}
+  .codebox{font-family:var(--mono);font-size:.68rem;white-space:pre-wrap;word-break:break-word;background:var(--panel-2);border:1px solid var(--hairline);border-radius:8px;padding:9px;max-height:260px;overflow:auto;}
+  .matrixmini{display:grid;grid-template-columns:repeat(27,1fr);gap:1px;margin-top:8px;}
+  .matrixmini div{aspect-ratio:1;border-radius:1px;background:var(--hairline);}
+  @media(max-width:520px){.modegrid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brandrow">
+      <svg width="34" height="34" viewBox="0 0 34 34">
+        <g fill="none" stroke="var(--brass)" stroke-width="1">
+          <path d="M17 3 L31 17 L17 31 L3 17 Z"/>
+        </g>
+        <circle cx="17" cy="17" r="2.4" fill="var(--brass)"/>
+        <circle cx="17" cy="3" r="1.6" fill="var(--violet)"/>
+        <circle cx="31" cy="17" r="1.6" fill="var(--violet)"/>
+        <circle cx="17" cy="31" r="1.6" fill="var(--violet)"/>
+        <circle cx="3" cy="17" r="1.6" fill="var(--violet)"/>
+      </svg>
+      <div>
+        <h1>NVMEROKLEI<span class="accent-brass">Δ</span>ON</h1>
+        <div class="sub">Tekst hebrajski → alfabet 27 · <span class="accent-brass">AG(3,3)</span> · orbity O<sub>h</sub> · <span class="accent-violet">SWARM</span> · oryginalne trigramy</div>
+      </div>
+    </div>
+  </header>
+
+  <div class="panel">
+    <h2>Wejście</h2>
+    <label for="input">Tekst hebrajski (z nikudem lub bez)</label>
+    <textarea id="input" dir="auto" placeholder="בראשית ברא אלהים…"></textarea>
+    <div class="row">
+      <button class="ghost" data-sample="genesis">Wklej Genesis 1:1</button>
+      <button class="ghost" data-sample="shema">Wklej Szma</button>
+      <button class="ghost" data-sample="random">Losowy tekst</button>
+      <button class="ghost" id="clearBtn">Wyczyść</button>
+    </div>
+    <div class="row">
+      <label class="chk"><input type="checkbox" id="keepWords" checked> zachowaj podział na frazy</label>
+      <label class="chk"><input type="checkbox" id="showGematria"> pokaż gematrię (mispar hechrachi)</label>
+    </div>
+    <div class="row">
+      <button class="primary" id="analyzeBtn">Analizuj</button>
+    </div>
+    <div class="caption" id="inputInfo"></div>
+  </div>
+
+  <nav class="tabs" id="tabs">
+    <button data-tab="foundation">0 · Fundament</button>
+    <button class="active" data-tab="seq">1 · Sekwencja</button>
+    <button data-tab="mat">2 · Macierz</button>
+    <button data-tab="crystal">3 · Kryształ</button>
+    <button data-tab="orbit">4 · Orbity</button>
+    <button data-tab="res">5 · Rezonans</button>
+    <button data-tab="swarm">6 · SWARM</button>
+    <button data-tab="lab">7 · Laboratorium</button>
+    <button data-tab="trajectory">8 · Trajektoria</button>
+    <button data-tab="invariants">9 · Inwarianty</button>
+    <button data-tab="counter">10 · Kontrfaktyczne</button>
+    <button data-tab="recorder">11 · Eksperyment</button>
+  </nav>
+
+  <!-- TAB 0: FOUNDATION -->
+  <div class="tabpanel" id="tab-foundation">
+    <div class="panel">
+      <h2><span class="n">§</span>Wyprowadzenie alfabetu z μ(n)</h2>
+      <div class="caption">
+        Cztery kanały i¹,i²,i³,i⁴ = {i,−1,−i,1}. Dla bloków n=4k+1…4k+4 (start od n=1 —
+        w gematrii nie istnieje literoliczba 0) liczymy μ(n) dla pierwszych trzech kanałów;
+        czwarty (i⁴) jest zawsze podzielny przez 4, więc zawsze ma czynnik kwadratowy i μ=0
+        z definicji — niesie zero informacji i jest pomijany. Pierwsze wystąpienie każdej
+        z 27 możliwych trójek {−1,0,1}³ trafia do kolejnej literoliczby w porządku alfabetu.
+        Ta tablica nie jest wpisana ręcznie — jest tu policzona na żywo z definicji μ.
+      </div>
+      <div class="statgrid" style="margin-top:10px">
+        <div class="stat"><div class="lbl">Zgodność z tabelą LETTERS</div><div class="val" id="moebiusValidStat">–</div></div>
+        <div class="stat"><div class="lbl">Ostatni filar (ץ)</div><div class="val v" id="moebiusLastPillar">–</div></div>
+      </div>
+      <div class="caption" style="margin-top:10px">Tabela filarów</div>
+      <div class="scrolltable">
+        <table id="moebiusTable"><thead><tr><th></th><th>Litera</th><th>Klucz μ</th><th>Filar (blok)</th><th>n</th></tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 1: SEQUENCE -->
+  <div class="tabpanel active" id="tab-seq">
+    <div class="panel" id="seqPanel"><div class="empty">Wklej tekst i kliknij „Analizuj”, aby zobaczyć sekwencję liter.</div></div>
+    <div class="panel" id="freqPanel" style="display:none">
+      <h2><span class="n">§</span>Częstości, rank–frequency, entropia</h2>
+      <div class="statgrid">
+        <div class="stat"><div class="lbl">Liczba liter</div><div class="val" id="statLen">–</div></div>
+        <div class="stat"><div class="lbl">Unikalnych symboli</div><div class="val" id="statUniq">–</div></div>
+      </div>
+      <div class="slider-row">
+        <div class="top"><span>Entropia Rényiego — α</span><span id="alphaVal">2.0</span></div>
+        <input type="range" id="alphaSlider" min="0.1" max="6" step="0.1" value="2">
+      </div>
+      <div class="slider-row">
+        <div class="top"><span>Entropia Tsallisa — q</span><span id="qVal">2.0</span></div>
+        <input type="range" id="qSlider" min="0.1" max="6" step="0.1" value="2">
+      </div>
+      <div class="statgrid">
+        <div class="stat"><div class="lbl">Shannon H (bity)</div><div class="val" id="statShannon">–</div></div>
+        <div class="stat"><div class="lbl">H<sub>max</sub> = log₂27</div><div class="val v">4.755</div></div>
+        <div class="stat"><div class="lbl">Rényi H<sub>α</sub></div><div class="val" id="statRenyi">–</div></div>
+        <div class="stat"><div class="lbl">Tsallis S<sub>q</sub></div><div class="val" id="statTsallis">–</div></div>
+      </div>
+      <label>Rozkład rangowy — częstość wg rangi</label>
+      <div class="barchart" id="zipfChart"></div>
+      <div class="caption" id="zipfFitNote" style="margin-top:8px"></div>
+      <div class="caption" style="margin-top:10px">Tabela częstości</div>
+      <div class="scrolltable">
+        <table id="freqTable"><thead><tr><th></th><th>Litera</th><th>Warstwa</th><th>n</th><th id="gemHead" style="display:none">Gem.</th></tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: MATRIX -->
+  <div class="tabpanel" id="tab-mat">
+    <div class="panel" id="matEmpty"><div class="empty">Uruchom analizę, aby zobaczyć macierz przejść.</div></div>
+    <div class="panel" id="matPanel" style="display:none">
+      <h2><span class="n">§</span>Macierz przejść P(a→b), 27×27</h2>
+      <canvas id="matCanvas" height="300"></canvas>
+      <div class="readout" id="matReadout">Dotknij komórkę, aby zobaczyć prawdopodobieństwo przejścia.</div>
+      <div class="caption">Ciemniejsze = częstsze przejście. Skala logarytmiczna dla czytelności rzadkich przejść.</div>
+    </div>
+    <div class="panel" id="spectPanel" style="display:none">
+      <h2><span class="n">§</span>Widmo Laplasjanu + stopień Fiedlera</h2>
+      <div class="caption">Graf liter powstaje z symetryzowanej macierzy przejść W=(T+Tᵀ)/2; W służy do zbudowania grafu i jego Laplasjanu. Węzły nieobecne w tekście są pomijane w widmie.</div>
+      <div class="barchart" id="spectChart" style="margin-top:10px"></div>
+      <div class="statgrid" style="margin-top:10px">
+        <div class="stat"><div class="lbl">λ₁ (zawsze ≈0)</div><div class="val" id="lambda1">–</div></div>
+        <div class="stat"><div class="lbl">λ₂ — stopień Fiedlera</div><div class="val v" id="fiedler">–</div></div>
+      </div>
+      <div class="caption">λ₂=0 oznacza rozspojenie grafu (co najmniej dwie składowe); większe λ₂ oznacza silniejszą spójność badanego grafu.</div>
+    </div>
+    <div class="panel" id="collatzPanel" style="display:none">
+      <h2><span class="n">§</span>Odległość od macierzy Collatza</h2>
+      <div class="caption">Baseline Collatza: niezależne trajektorie dla ziaren 2…200. Każda liczba jest rzutowana przez n mod 27 → trzy cyfry w bazie 3 → trymian {-1,0,1}³ → tablica NVMEROKLEIΔON. Przejścia między osobnymi trajektoriami nie są liczone.</div>
+      <div class="statgrid" style="margin-top:10px">
+        <div class="stat"><div class="lbl">Odl. Frobeniusa (aktywne wiersze)</div><div class="val" id="statFrob">–</div></div>
+        <div class="stat"><div class="lbl">KL(tekst ‖ Collatz)</div><div class="val" id="statKL">–</div></div>
+        <div class="stat"><div class="lbl">JS-divergence (częstości liter)</div><div class="val v" id="statJS">–</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: CRYSTAL -->
+  <div class="tabpanel" id="tab-crystal">
+    <div class="panel" id="crystalEmpty"><div class="empty">Uruchom analizę, aby zobaczyć ścieżkę tekstu w krysztale AG(3,3).</div></div>
+    <div class="panel" id="crystalPanel" style="display:none">
+      <h2><span class="n">§</span>Kryształ AG(3,3) — ścieżka tekstu</h2>
+      <canvas id="crystalCanvas" height="320"></canvas>
+      <div class="readout" id="crystalReadout">Przeciągnij, aby obrócić. Dotknij punkt, aby zobaczyć literę.</div>
+      <div class="statgrid" style="margin-top:10px">
+        <div class="stat"><div class="lbl">Energia ścieżki (Σ odległości)</div><div class="val" id="statEnergy">–</div></div>
+        <div class="stat"><div class="lbl">Zmiany warstwy</div><div class="val" id="statLayerJumps">–</div></div>
+      </div>
+      <div class="caption">Kolor punktu: <span class="accent-brass">rdzeń</span> / fiolet = osie / zielony = ściany / czerwony = narożniki. Fioletowa linia = kolejność liter w tekście.</div>
+    </div>
+  </div>
+
+  <!-- TAB 4: ORBITS -->
+  <div class="tabpanel" id="tab-orbit">
+    <div class="panel" id="orbitEmpty"><div class="empty">Uruchom analizę, aby zobaczyć orbity O_h i linie AG(3,3).</div></div>
+    <div class="panel" id="orbitPanel" style="display:none">
+      <h2><span class="n">§</span>Profil regionalny (obserwowane vs oczekiwane)</h2>
+      <div class="barchart" id="regionChart"></div>
+      <div class="caption">Jasny słupek = obecny tekst, ciemny = rozkład oczekiwany przy losowym tekście. core=1/27 · osie=6/27 · ściany=12/27 · narożniki=8/27.</div>
+      <div class="caption" style="margin-top:8px" id="coreNote"></div>
+    </div>
+    <div class="panel" id="orbitListPanel" style="display:none">
+      <h2><span class="n">§</span>Orbity O_h obecnych liter</h2>
+      <div id="orbitList"></div>
+    </div>
+    <div class="panel" id="linesPanel" style="display:none">
+      <h2><span class="n">§</span>Linie AG(3,3) w tekście</h2>
+      <div class="caption">Trzy kolejne litery tworzą „linię”, jeśli ich współrzędne (mod 3) sumują się do zera w każdej osi — analogicznie do reguły gry Set.</div>
+      <div class="statgrid" style="margin-top:8px">
+        <div class="stat"><div class="lbl">Trójki na linii</div><div class="val" id="statLines">–</div></div>
+        <div class="stat"><div class="lbl">z wszystkich trójek</div><div class="val" id="statLinesTotal">–</div></div>
+      </div>
+      <div id="lineExamples" style="margin-top:8px"></div>
+      <div class="caption" id="linesBaseline" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+  <!-- TAB 5: RESONANCE -->
+  <div class="tabpanel" id="tab-res">
+    <div class="panel" id="resEmpty"><div class="empty">Uruchom analizę, aby odblokować kontynuację, transformację i rezonans.</div></div>
+    <div class="panel" id="contPanel" style="display:none">
+      <h2><span class="n">§</span>Kontynuacja</h2>
+      <div class="slider-row">
+        <div class="top"><span>Mieszanie: tekst ↔ Collatz</span><span id="mixVal">0.7</span></div>
+        <input type="range" id="mixSlider" min="0" max="1" step="0.05" value="0.7">
+      </div>
+      <div class="slider-row">
+        <div class="top"><span>Długość kontynuacji</span><span id="lenVal">16</span></div>
+        <input type="range" id="lenSlider" min="4" max="40" step="1" value="16">
+      </div>
+      <button class="primary" id="genBtn">Generuj</button>
+      <div class="hebline small" id="contOut" style="margin-top:10px">–</div>
+    </div>
+    <div class="panel" id="mirrorPanel" style="display:none">
+      <h2><span class="n">§</span>Transformacja (symetria O_h)</h2>
+      <select id="mirrorSelect">
+        <option value="flipX">Odbicie osi X</option>
+        <option value="flipY">Odbicie osi Y</option>
+        <option value="flipZ">Odbicie osi Z</option>
+        <option value="swapXY">Zamiana osi X↔Y</option>
+        <option value="swapYZ">Zamiana osi Y↔Z</option>
+        <option value="swapXZ">Zamiana osi X↔Z</option>
+        <option value="random">Losowa symetria O_h</option>
+      </select>
+      <div class="row"><button class="primary" id="mirrorBtn">Zastosuj</button></div>
+      <div class="caption" style="margin-top:8px">Oryginał</div>
+      <div class="hebline small" id="mirrorOrig">–</div>
+      <div class="caption" style="margin-top:8px">Po transformacji</div>
+      <div class="hebline small" id="mirrorOut">–</div>
+    </div>
+    <div class="panel" id="libPanel" style="display:none">
+      <h2><span class="n">§</span>Rezonans z biblioteką</h2>
+      <div class="caption">Podobieństwo kosinusowe wektora częstości liter do profili referencyjnych.</div>
+      <div id="libList" style="margin-top:8px"></div>
+    </div>
+  </div>
+
+  <!-- TAB 6: SWARM -->
+  <div class="tabpanel" id="tab-swarm">
+    <div class="panel" id="swarmEmpty"><div class="empty">Uruchom analizę, aby sonifikować tekst.</div></div>
+    <div class="panel" id="swarmPanel" style="display:none">
+      <h2><span class="n">§</span>SWARM Bridge — sonifikacja</h2>
+      <div class="caption">Własny, uproszczony silnik Web Audio inspirowany opisem mapowania (nie jest to oryginalny SWARM v3.0 — ten prototyp nie ma dostępu do Twojego istniejącego kodu).</div>
+      <div class="slider-row" style="margin-top:10px">
+        <div class="top"><span>Tempo (ms / litera)</span><span id="tempoVal">220</span></div>
+        <input type="range" id="tempoSlider" min="80" max="500" step="10" value="220">
+      </div>
+      <div class="row">
+        <button class="primary" id="playBtn">▶ Uruchom</button>
+        <button class="ghost" id="stopBtn">■ Zatrzymaj</button>
+      </div>
+      <div class="caption" style="margin-top:10px">Mapowanie: warstwa→barwa (sinus/trójkąt/piła/kwadrat) · odległość od rdzenia→filtr · lokalna entropia→detuning · czas w tej samej warstwie→pamięć/delay · zmiana warstwy→bifurcationFlash.</div>
+      <div class="logbox" id="swarmLog" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+  <!-- TAB 7: OPERATOR LAB -->
+  <div class="tabpanel" id="tab-lab">
+    <div class="panel" id="labEmpty"><div class="empty">Uruchom analizę, aby otworzyć laboratorium operatorów.</div></div>
+    <div class="panel" id="labPanel" style="display:none">
+      <h2><span class="n">§</span>Laboratorium operatorów</h2>
+      <div class="caption">Operator działa na reprezentacji geometrycznej każdego symbolu. Nie jest to arbitralna permutacja alfabetu.</div>
+      <select id="operatorSelect" style="margin-top:9px">
+        <option value="identity">Identity</option>
+        <option value="flipX">O<sub>h</sub> · odbicie X</option>
+        <option value="flipY">O<sub>h</sub> · odbicie Y</option>
+        <option value="flipZ">O<sub>h</sub> · odbicie Z</option>
+        <option value="swapXY">O<sub>h</sub> · X↔Y</option>
+        <option value="swapYZ">O<sub>h</sub> · Y↔Z</option>
+        <option value="swapXZ">O<sub>h</sub> · X↔Z</option>
+        <option value="randomOh">O<sub>h</sub> · losowy element</option>
+        <option value="randomS27">Kontrola: losowa permutacja S₂₇ (poza O_h)</option>
+      </select>
+      <div class="row"><button class="primary" id="operatorBtn">Zastosuj operator</button></div>
+      <div class="statgrid" style="margin-top:10px">
+        <div class="stat"><div class="lbl">Zmiany symbolu</div><div class="val" id="opChanged">–</div></div>
+        <div class="stat"><div class="lbl">Zmiany warstwy</div><div class="val" id="opLayerChanged">–</div></div>
+      </div>
+      <div class="caption">Oryginał</div><div class="hebline small" id="opOrig">–</div>
+      <div class="caption" style="margin-top:8px">Obraz operatora</div><div class="hebline small" id="opOut">–</div>
+      <div class="caption" style="margin-top:8px" id="opNote"></div>
+    </div>
+    <div class="panel" id="inspectorPanel" style="display:none">
+      <h2><span class="n">§</span>Inspector symbolu</h2>
+      <div class="caption">Kliknij literę poniżej albo punkt w krysztale, aby zbadać pojedynczy stan.</div>
+      <select id="inspectorSelect" style="margin-top:9px"></select>
+      <div id="inspectorOut" style="margin-top:10px"></div>
+      <div class="caption" style="margin-top:8px">Pełna orbita O<sub>h</sub></div>
+      <div id="inspectorOrbit"></div>
+    </div>
+  </div>
+
+  <!-- TAB 8: TRAJECTORY -->
+  <div class="tabpanel" id="tab-trajectory">
+    <div class="panel" id="trajectoryEmpty"><div class="empty">Uruchom analizę, aby zobaczyć tekst jako trajektorię w przestrzeni 27 punktów.</div></div>
+    <div class="panel" id="trajectoryPanel" style="display:none">
+      <h2><span class="n">§</span>Trajectory Mode</h2>
+      <div class="caption">Każda litera jest punktem trójmianowym. Linia pokazuje rzeczywistą kolejność symboli w tekście.</div>
+      <canvas id="trajectoryCanvas" height="320"></canvas>
+      <div class="row"><button class="primary" id="trajPlayBtn">▶ Odtwórz trajektorię</button><button id="trajStopBtn">■ Stop</button></div>
+      <div class="readout" id="trajReadout">–</div>
+      <div class="statgrid" style="margin-top:10px">
+        <div class="stat"><div class="lbl">Długość trajektorii</div><div class="val" id="trajLength">–</div></div>
+        <div class="stat"><div class="lbl">Średni krok</div><div class="val" id="trajMeanStep">–</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 9: INVARIANTS -->
+  <div class="tabpanel" id="tab-invariants">
+    <div class="panel" id="invEmpty"><div class="empty">Uruchom analizę, aby badać niezmienniki operatorów.</div></div>
+    <div class="panel" id="invPanel" style="display:none">
+      <h2><span class="n">§</span>Invariant Hunt</h2>
+      <div class="caption">Porównujemy tekst przed i po operatorze. Inwariant oznacza tutaj własność zachowaną przez reprezentację punktów.</div>
+      <select id="invSelect" style="margin-top:9px">
+        <option value="flipX">Odbicie X</option><option value="flipY">Odbicie Y</option><option value="flipZ">Odbicie Z</option>
+        <option value="swapXY">X↔Y</option><option value="swapYZ">Y↔Z</option><option value="swapXZ">X↔Z</option><option value="randomOh">Losowe O<sub>h</sub></option>
+        <option value="randomS27">Kontrola: losowa permutacja S₂₇ (poza O_h)</option>
+      </select>
+      <div class="row"><button class="primary" id="invBtn">Szukaj inwariantów</button></div>
+      <div id="invOut"></div>
+    </div>
+  </div>
+
+  <!-- TAB 10: COUNTERFACTUAL -->
+  <div class="tabpanel" id="tab-counter">
+    <div class="panel" id="counterEmpty"><div class="empty">Uruchom analizę, aby porównywać tekst z kontrolowanymi kontrfaktycznymi kolejnościami.</div></div>
+    <div class="panel" id="counterPanel" style="display:none">
+      <h2><span class="n">§</span>Counterfactual Text</h2>
+      <div class="caption">Null model zmienia kolejność, ale może zachowywać liczebność symboli. To kontrola eksperymentalna, nie „lepszy” tekst.</div>
+      <select id="counterSelect" style="margin-top:9px">
+        <option value="shuffle">Losowa kolejność — zachowaj częstości</option>
+        <option value="layer">Permutacja w obrębie warstw</option>
+        <option value="orbit">Permutacja w obrębie orbit</option>
+        <option value="reverse">Odwrócenie kolejności</option>
+      </select>
+      <div class="row"><button class="primary" id="counterBtn">Generuj kontrfaktyczny</button></div>
+      <div class="caption">Oryginał</div><div class="hebline small" id="counterOrig">–</div>
+      <div class="caption" style="margin-top:8px">Kontrfaktyczny</div><div class="hebline small" id="counterOut">–</div>
+      <div id="counterCompare" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+  <!-- TAB 11: RECORDER -->
+  <div class="tabpanel" id="tab-recorder">
+    <div class="panel" id="recPanel">
+      <h2><span class="n">§</span>Experiment Recorder</h2>
+      <div class="caption">Eksperyment można zapisać jako JSON i później odtworzyć. Zapis obejmuje alfabet, tekst, parametry i wyniki strukturalne.</div>
+      <div class="row"><button class="primary" id="exportBtn">Eksportuj JSON</button><button id="replayBtn">Odtwórz zapis</button><button id="exportCsvBtn">Eksportuj macierz CSV</button><input type="file" id="replayFile" accept="application/json" style="display:none"></div>
+      <div class="caption" style="margin-top:6px">CSV zawiera surową macierz przejść 27×27 (liczności) — do dalszej analizy poza przeglądarką (Python/R).</div>
+      <div class="caption" style="margin-top:8px">Podgląd stanu</div>
+      <div class="codebox" id="statePreview">Brak analizy.</div>
+    </div>
+  </div>
+
+  <footer class="note">
+    <b>Mapowanie liter.</b> Użyto oryginalnego przypisania trigramów NVMEROKLEIΔON (Alef=[1,-1,-1] … Cadi k.=[0,0,0]).
+    Rdzeniem kryształu AG(3,3) jest <b>ץ (Cadi k.)</b>. Macierz grafu = symetryzowana macierz przejść W=(T+Tᵀ)/2.
+    Silnik dźwiękowy to samodzielna implementacja Web Audio inspirowana SWARM (nie oryginalny kod v3.0).
+  </footer>
+
+</div>
+
+<script>
+(function(){
+"use strict";
+
+// ============================================================
+// MODUŁ: alfabet 27 liter — ORYGINALNE mapowanie NVMEROKLEIΔON
+// Każda litera ma stały trigram z {-1,0,1}³ (zgodnie z Twoim systemem)
+// Rdzeń (0,0,0) = Cadi k. (ץ)
+// ============================================================
+const LETTERS = [
+  {name:"Alef",     heb:"א", tri:[ 1,-1,-1], num:1 },
+  {name:"Bet",      heb:"ב", tri:[-1, 1,-1], num:2 },
+  {name:"Gimel",    heb:"ג", tri:[ 0, 1,-1], num:3 },
+  {name:"Dalet",    heb:"ד", tri:[-1, 1, 1], num:4 },
+  {name:"He",       heb:"ה", tri:[-1, 0,-1], num:5 },
+  {name:"Waw",      heb:"ו", tri:[ 1, 1,-1], num:6 },
+  {name:"Zajin",    heb:"ז", tri:[ 0, 1, 0], num:7 },
+  {name:"Chet",     heb:"ח", tri:[-1,-1,-1], num:8 },
+  {name:"Tet",      heb:"ט", tri:[ 1, 1, 1], num:9 },
+  {name:"Jod",      heb:"י", tri:[ 0, 0, 1], num:10},
+  {name:"Kaf",      heb:"כ", tri:[-1, 0, 1], num:11},
+  {name:"Lamed",    heb:"ל", tri:[-1, 1, 0], num:12},
+  {name:"Mem",      heb:"מ", tri:[-1, 0, 0], num:13},
+  {name:"Nun",      heb:"נ", tri:[-1,-1, 1], num:14},
+  {name:"Samech",   heb:"ס", tri:[ 0, 1, 1], num:15},
+  {name:"Ajin",     heb:"ע", tri:[ 0, 0,-1], num:16},
+  {name:"Pe",       heb:"פ", tri:[ 1, 1, 0], num:17},
+  {name:"Cadi",     heb:"צ", tri:[ 0,-1, 1], num:18},
+  {name:"Kof",      heb:"ק", tri:[ 1, 0,-1], num:19},
+  {name:"Resz",     heb:"ר", tri:[ 0,-1, 0], num:20},
+  {name:"Szin",     heb:"ש", tri:[-1,-1, 0], num:21},
+  {name:"Taw",      heb:"ת", tri:[ 1,-1, 1], num:22},
+  {name:"Kaf k.",   heb:"ך", tri:[ 0,-1,-1], num:23},
+  {name:"Mem k.",   heb:"ם", tri:[ 1, 0, 0], num:24},
+  {name:"Nun k.",   heb:"ן", tri:[ 1, 0, 1], num:25},
+  {name:"Pe k.",    heb:"ף", tri:[ 1,-1, 0], num:26},
+  {name:"Cadi k.",  heb:"ץ", tri:[ 0, 0, 0], num:27}   // RDZEŃ
+];
+const GEMATRIA = [1,2,3,4,5,6,7,8,9,10,20,30,40,50,60,70,80,90,100,200,300,400,20,40,50,80,90];
+const N = 27;
+const HEB_TO_IDX = {};
+const TRI_TO_IDX = {};
+LETTERS.forEach((l,i)=>{
+  HEB_TO_IDX[l.heb] = i;
+  TRI_TO_IDX[l.tri.join(",")] = i;
+});
+
+// ============================================================
+// MODUŁ: MoebiusKeyEngine — jawne wyprowadzenie alfabetu 27 z μ(n)
+// Konstrukcja: cztery kanały i¹,i²,i³,i⁴ = {i,-1,-i,1}. Dla kolejnych
+// bloków n=4k+1..4k+4 (k=0,1,2,… start od n=1 — w gematrii nie
+// istnieje literoliczba 0, więc skan świadomie nie zaczyna się od 0)
+// liczymy μ(n) dla pierwszych trzech kanałów (czwarty, i⁴, jest zawsze
+// podzielny przez 4 ⇒ zawsze ma czynnik kwadratowy ⇒ μ=0 z definicji,
+// więc niesie zero informacji i jest pomijany przy przejściu do 3D).
+// Pierwsze wystąpienie każdej z 27 możliwych trójek {-1,0,1}³ zostaje
+// przypisane kolejnej literze w porządku alfabetu hebrajskiego;
+// powtórzenia trójki są pomijane i skan biegnie dalej.
+// Ten moduł odtwarza tabelę LETTERS.tri wyłącznie z definicji μ —
+// służy jako żywy dowód, że mapowanie nie jest arbitralne.
+// ============================================================
+function mobius(n){
+  if(n===1) return 1;
+  let result=1, x=n;
+  for(let p=2; p*p<=x; p++){
+    if(x%p===0){
+      x/=p;
+      if(x%p===0) return 0;
+      result=-result;
+    }
+  }
+  if(x>1) result=-result;
+  return result;
+}
+function deriveMoebiusKeys(letterCount, maxBlocks){
+  const seen = new Set();
+  const out = [];
+  let ptr = 0, block = 0;
+  while(ptr < letterCount && block < maxBlocks){
+    const base = block*4;
+    const m = [mobius(base+1), mobius(base+2), mobius(base+3), mobius(base+4)];
+    const key = m.slice(0,3).join(",");
+    if(!seen.has(key)){
+      seen.add(key);
+      out.push({tri:m.slice(0,3), pillarBlock:block, pillarN:[base+1,base+2,base+3,base+4], pillarIndex:ptr});
+      ptr++;
+    }
+    block++;
+  }
+  return out;
+}
+const MOEBIUS_KEYS = deriveMoebiusKeys(27, 400);
+// Samowalidacja: tablica wyprowadzona z μ musi się dokładnie zgadzać
+// z tabelą LETTERS.tri litera po literze. Jeśli kiedyś ktoś zmieni
+// LETTERS ręcznie bez przeliczenia, ten test to wychwyci przy starcie.
+const MOEBIUS_VALIDATION = LETTERS.map((l,i)=>{
+  const k = MOEBIUS_KEYS[i];
+  const ok = k && l.tri[0]===k.tri[0] && l.tri[1]===k.tri[1] && l.tri[2]===k.tri[2];
+  return {name:l.name, heb:l.heb, tri:l.tri, pillarBlock:k?k.pillarBlock:null, pillarN:k?k.pillarN:null, ok};
+});
+const MOEBIUS_ALL_VALID = MOEBIUS_VALIDATION.every(v=>v.ok);
+if(!MOEBIUS_ALL_VALID) console.warn("NVMEROKLEIΔON: rozbieżność między LETTERS.tri a wyprowadzeniem μ!", MOEBIUS_VALIDATION.filter(v=>!v.ok));
+
+// ============================================================
+// MODUŁ: HebrewNormalizer
+// ============================================================
+function normalizeHebrew(text){
+  const words = [];
+  let curWord = [];
+  const flat = [];
+  for(const ch of text){
+    if(ch in HEB_TO_IDX){
+      const idx = HEB_TO_IDX[ch];
+      flat.push(idx);
+      curWord.push(idx);
+    } else if(/\s/.test(ch)){
+      if(curWord.length){ words.push(curWord); curWord=[]; }
+    }
+    // wszystko inne (nikud, interpunkcja, inne języki) jest po prostu pomijane
+  }
+  if(curWord.length) words.push(curWord);
+  return {flat, words};
+}
+
+// ============================================================
+// MODUŁ: AG33Projector — geometria kryształu
+// Używa ORYGINALNYCH trigramów z tablicy LETTERS (nie indeksów)
+// ============================================================
+function idxToPoint(i){ return LETTERS[i].tri.slice(); }
+function pointToIdx(p){
+  const k = p.join(",");
+  return (k in TRI_TO_IDX) ? TRI_TO_IDX[k] : -1;
+}
+function layerOf(p){
+  const z = p.filter(v=>v===0).length;
+  return z===3?"core":z===2?"axes":z===1?"faces":"corners";
+}
+const LAYER_LABEL = {core:"rdzeń",axes:"oś",faces:"ściana",corners:"narożnik"};
+const LAYER_COLOR = {core:"#c9a15a",axes:"#8b7fd6",faces:"#7fae8a",corners:"#c06a5c"};
+const LAYER_EXPECTED = {core:1/27,axes:6/27,faces:12/27,corners:8/27};
+
+function permutations3(){
+  const res=[]; const idxs=[0,1,2];
+  (function permute(arr,m){ if(!arr.length){res.push(m);return;} for(let i=0;i<arr.length;i++){const c=arr.slice();const n=c.splice(i,1);permute(c,m.concat(n));} })(idxs,[]);
+  return res;
+}
+const PERMS = permutations3();
+const SIGNS = (()=>{const o=[];for(let a=-1;a<=1;a+=2)for(let b=-1;b<=1;b+=2)for(let c=-1;c<=1;c+=2)o.push([a,b,c]);return o;})();
+function ohOrbit(p){
+  const seen=new Set(), out=[];
+  for(const perm of PERMS) for(const s of SIGNS){
+    const q=[p[perm[0]]*s[0], p[perm[1]]*s[1], p[perm[2]]*s[2]];
+    const k=q.join(","); if(!seen.has(k)){seen.add(k);out.push(q);}
+  }
+  return out;
+}
+// Współrzędne w {-1,0,1} → cyfry 0,1,2 do testu kolinearności (mod 3)
+function coordToDigit(c){ return c===-1?0:(c===0?1:2); }
+function collinear(i,j,k){
+  if(i===j||j===k||i===k) return false;
+  const a=idxToPoint(i), b=idxToPoint(j), c=idxToPoint(k);
+  for(let t=0;t<3;t++){
+    if( ((coordToDigit(a[t])+coordToDigit(b[t])+coordToDigit(c[t])) % 3) !== 0 ) return false;
+  }
+  return true;
+}
+
+// ============================================================
+// MODUŁ: LetterSequence / Matrix Engine
+// ============================================================
+function buildFrequency(seq){
+  const counts=Array(N).fill(0);
+  for(const s of seq) counts[s]++;
+  const total = seq.length || 1;
+  const probs = counts.map(c=>c/total);
+  return {counts, probs};
+}
+function buildTransitionCounts(seq){
+  const m = Array.from({length:N},()=>Array(N).fill(0));
+  for(let i=0;i<seq.length-1;i++) m[seq[i]][seq[i+1]]++;
+  return m;
+}
+function rowNormalize(m){
+  // Puste wiersze pozostają zerowe: brak obserwacji nie jest sztucznie
+  // zamieniany na rozkład jednostajny. To ważne dla grafu i KL.
+  return m.map(row=>{
+    const s=row.reduce((a,b)=>a+b,0);
+    return s>0 ? row.map(v=>v/s) : row.map(()=>0);
+  });
+}
+function shannon(probs){ let h=0; for(const p of probs) if(p>0) h-=p*Math.log2(p); return h; }
+function renyi(probs,alpha){ if(Math.abs(alpha-1)<1e-6) return shannon(probs); let s=0; for(const p of probs) if(p>0) s+=Math.pow(p,alpha); return (1/(1-alpha))*Math.log2(s); }
+function tsallis(probs,q){ if(Math.abs(q-1)<1e-6) return shannon(probs)*Math.LN2; let s=0; for(const p of probs) s+=Math.pow(p,q); return (1-s)/(q-1); }
+
+function jacobiEigen(Ain, maxIter=5000, tol=1e-9){
+  const n=Ain.length;
+  const A=Ain.map(r=>r.slice());
+  for(let iter=0; iter<maxIter; iter++){
+    let p=0,q=1,maxVal=0;
+    for(let i=0;i<n;i++) for(let j=i+1;j<n;j++) if(Math.abs(A[i][j])>maxVal){maxVal=Math.abs(A[i][j]);p=i;q=j;}
+    if(maxVal<tol) break;
+    const app=A[p][p], aqq=A[q][q], apq=A[p][q];
+    const phi=0.5*Math.atan2(2*apq, aqq-app);
+    const c=Math.cos(phi), s=Math.sin(phi);
+    for(let i=0;i<n;i++){ const aip=A[i][p], aiq=A[i][q]; A[i][p]=c*aip-s*aiq; A[i][q]=s*aip+c*aiq; }
+    for(let i=0;i<n;i++){ const api=A[p][i], aqi=A[q][i]; A[p][i]=c*api-s*aqi; A[q][i]=s*api+c*aqi; }
+  }
+  return Array.from({length:n},(_,i)=>A[i][i]);
+}
+function fiedlerFromTransition(Tcounts){
+  // Widmo liczymy na podgrafie symboli faktycznie obecnych w tekście.
+  // Dzięki temu nie dodajemy 27- |V| sztucznych, izolowanych wierzchołków.
+  const active=[];
+  for(let i=0;i<N;i++){
+    let incident=0;
+    for(let j=0;j<N;j++) incident += Tcounts[i][j] + Tcounts[j][i];
+    if(incident>0) active.push(i);
+  }
+  if(active.length===0) return [0,0];
+  if(active.length===1) return [0,0];
+  const W = active.map(i=>active.map(j=>(Tcounts[i][j]+Tcounts[j][i])/2));
+  const D = W.map(row=>row.reduce((a,b)=>a+b,0));
+  const L = W.map((row,i)=>row.map((v,j)=>(i===j?D[i]:0)-v));
+  return jacobiEigen(L).slice().sort((a,b)=>a-b);
+}
+
+// ============================================================
+// MODUŁ: TextResonance
+// ============================================================
+function collatzTrajectory(n, maxSteps=100000){
+  const seq=[n]; let cur=n, steps=0;
+  while(cur!==1 && steps<maxSteps){ cur = cur%2===0? cur/2 : 3*cur+1; seq.push(cur); steps++; }
+  return seq;
+}
+let _collatzCache=null;
+function numberToNvmIdx(n){
+  // 27 = 3^3. Nie traktujemy reszty jako indeksu alfabetu;
+  // rozbijamy ją na trzy trit-y i dopiero przez TRI_TO_IDX otrzymujemy literę.
+  const r=((Math.trunc(n)%N)+N)%N;
+  let x=r;
+  const tri=[];
+  for(let k=0;k<3;k++){
+    const digit=x%3;
+    tri.push(digit-1); // 0,1,2 -> -1,0,1
+    x=Math.floor(x/3);
+  }
+  return pointToIdx(tri);
+}
+function collatzLetterSeq(){
+  if(_collatzCache) return _collatzCache;
+  const out=[];
+  for(let sd=2; sd<=200 && out.length<3000; sd++){
+    for(const v of collatzTrajectory(sd)){
+      out.push(numberToNvmIdx(v));
+      if(out.length>=3000) break;
+    }
+  }
+  _collatzCache = out;
+  return out;
+}
+function collatzTransitionCounts(limit=3000){
+  const m=Array.from({length:N},()=>Array(N).fill(0));
+  let used=0;
+  for(let sd=2; sd<=200 && used<limit; sd++){
+    const tr=collatzTrajectory(sd);
+    const ids=tr.map(numberToNvmIdx);
+    for(let i=0;i<ids.length-1 && used<limit;i++){
+      m[ids[i]][ids[i+1]]++;
+      used++;
+    }
+  }
+  return m;
+}
+function frobenius(A,B){ let s=0; for(let i=0;i<N;i++) for(let j=0;j<N;j++){ const d=A[i][j]-B[i][j]; s+=d*d; } return Math.sqrt(s); }
+// Frobenius ograniczony do wierszy faktycznie aktywnych w tekście (litery,
+// z których w ogóle wychodzi jakaś obserwowana tranzycja). Przy krótkich
+// tekstach większość z 27 wierszy pełnej macierzy jest zerowa po obu
+// stronach i tylko rozcieńcza metrykę porównaniem zer z zerami.
+function frobeniusActive(A,B,activeRows){
+  let s=0; for(const i of activeRows) for(let j=0;j<N;j++){ const d=A[i][j]-B[i][j]; s+=d*d; }
+  return Math.sqrt(s);
+}
+// Jensen-Shannon divergence: symetryczna, ograniczona do [0, log2(2)],
+// stabilniejsza niż KL przy rzadkich, zaszumionych rozkładach.
+function jsDivergence(p,q){
+  const m = p.map((v,i)=>(v+q[i])/2);
+  function klTo(a,b){ let s=0; for(let i=0;i<a.length;i++){ if(a[i]<=0) continue; s+=a[i]*Math.log2(a[i]/(b[i]||1e-12)); } return s; }
+  return 0.5*klTo(p,m) + 0.5*klTo(q,m);
+}
+function klRows(P,Q,weights){
+  let total=0, wsum=0;
+  for(let i=0;i<N;i++){
+    const w=weights[i]; if(w<=0) continue;
+    let rowKl=0;
+    for(let j=0;j<N;j++){
+      const p=P[i][j]+1e-9, q=Q[i][j]+1e-9;
+      rowKl += p*Math.log2(p/q);
+    }
+    total += w*rowKl; wsum+=w;
+  }
+  return wsum>0? total/wsum : 0;
+}
+function cosineSim(a,b){
+  let dot=0,na=0,nb=0;
+  for(let i=0;i<a.length;i++){ dot+=a[i]*b[i]; na+=a[i]*a[i]; nb+=b[i]*b[i]; }
+  if(na===0||nb===0) return 0;
+  return dot/(Math.sqrt(na)*Math.sqrt(nb));
+}
+function weightedSample(row, rng){
+  const r = rng(); let acc=0;
+  for(let j=0;j<N;j++){ acc+=row[j]; if(r<=acc) return j; }
+  return N-1;
+}
+function mulberry32(seed){
+  let a=seed;
+  return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; };
+}
+
+// ============================================================
+// MODUŁ: SonificationBridge (Web Audio)
+// ============================================================
+function Sonifier(){
+  this.ctx=null; this.playing=false; this.timers=[];
+}
+Sonifier.prototype.ensureCtx=function(){
+  if(!this.ctx){
+    this.ctx=new (window.AudioContext||window.webkitAudioContext)();
+    this.master=this.ctx.createGain(); this.master.gain.value=0.28; this.master.connect(this.ctx.destination);
+    this.delay=this.ctx.createDelay(1.0); this.delay.delayTime.value=0.16;
+    this.feedback=this.ctx.createGain(); this.feedback.gain.value=0.12;
+    this.delay.connect(this.feedback); this.feedback.connect(this.delay); this.delay.connect(this.master);
+  }
+};
+Sonifier.prototype.playNote=function(freq,waveform,cutoff,detune,dwellFb,dur,startAt,flash){
+  const ctx=this.ctx, t0=ctx.currentTime+startAt;
+  const osc=ctx.createOscillator(); osc.type=waveform; osc.frequency.value=freq; osc.detune.value=detune;
+  const filt=ctx.createBiquadFilter(); filt.type="lowpass"; filt.frequency.value=cutoff; filt.Q.value=0.7;
+  const env=ctx.createGain();
+  env.gain.setValueAtTime(0.0001,t0);
+  env.gain.exponentialRampToValueAtTime(0.55,t0+0.02);
+  env.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+  osc.connect(filt); filt.connect(env); env.connect(this.master);
+  const send=ctx.createGain(); send.gain.value=dwellFb;
+  env.connect(send); send.connect(this.delay);
+  this.feedback.gain.setValueAtTime(Math.min(0.6,dwellFb),t0);
+  osc.start(t0); osc.stop(t0+dur+0.05);
+  if(flash){
+    const fo=ctx.createOscillator(); fo.type="sine"; fo.frequency.value=1800;
+    const fe=ctx.createGain(); fe.gain.setValueAtTime(0.0001,t0);
+    fe.gain.exponentialRampToValueAtTime(0.28,t0+0.005);
+    fe.gain.exponentialRampToValueAtTime(0.0001,t0+0.06);
+    fo.connect(fe); fe.connect(this.master); fo.start(t0); fo.stop(t0+0.08);
+  }
+};
+Sonifier.prototype.stop=function(){
+  this.playing=false;
+  this.timers.forEach(t=>clearTimeout(t)); this.timers=[];
+  if(this.ctx){ this.ctx.close(); this.ctx=null; }
+};
+Sonifier.prototype.playSequence=function(seq,tempoMs,onStep,onDone){
+  this.ensureCtx(); this.playing=true;
+  const stepSec=tempoMs/1000;
+  let dwell=1, prevLayer=null; const win=[];
+  seq.forEach((idx,i)=>{
+    const p=idxToPoint(idx); const layer=layerOf(p);
+    const waveform=layer==="core"?"sine":layer==="axes"?"triangle":layer==="faces"?"sawtooth":"square";
+    const norm=Math.sqrt(p[0]*p[0]+p[1]*p[1]+p[2]*p[2]);
+    const cutoff=300+(norm/Math.sqrt(3))*4200;
+    const freq=110*Math.pow(2, idx/12);
+    win.push(idx); if(win.length>6) win.shift();
+    const cnt={}; win.forEach(v=>cnt[v]=(cnt[v]||0)+1);
+    const probsArr=Object.values(cnt).map(c=>c/win.length);
+    const ent=shannon(probsArr);
+    const detune=(ent/Math.log2(6))*35;
+    const flash= prevLayer!==null && prevLayer!==layer;
+    dwell = (layer===prevLayer)? dwell+1 : 1;
+    prevLayer=layer;
+    const dwellFb=Math.min(0.55,0.08*dwell);
+    this.playNote(freq,waveform,cutoff,detune,dwellFb,stepSec*0.9,i*stepSec,flash);
+    const t=setTimeout(()=>{ if(this.playing && onStep) onStep(i,idx,layer,freq,waveform); }, i*tempoMs);
+    this.timers.push(t);
+  });
+  const tEnd=setTimeout(()=>{ this.playing=false; if(onDone) onDone(); }, seq.length*tempoMs+150);
+  this.timers.push(tEnd);
+};
+
+// ============================================================
+// STAN + UI
+// ============================================================
+const state = { flat:[], words:[], counts:null, probs:null, Tcounts:null, Tprob:null, lastOperator:null, lastCounterfactual:null, experiment:null };
+const sonifier = new Sonifier();
+
+const SAMPLES = {
+  genesis: "בְּרֵאשִׁית בָּרָא אֱלֹהִים אֵת הַשָּׁמַיִם וְאֵת הָאָרֶץ",
+  shema: "שְׁמַע יִשְׂרָאֵל יְהוָה אֱלֹהֵינוּ יְהוָה אֶחָד"
+};
+function randomHebrewText(len){
+  const rng = mulberry32(Date.now()&0xffffffff);
+  let out=[];
+  for(let w=0; w<6; w++){
+    const wl = 2+Math.floor(rng()*5);
+    let word="";
+    for(let i=0;i<wl;i++) word += LETTERS[Math.floor(rng()*27)].heb;
+    out.push(word);
+  }
+  return out.join(" ");
+}
+
+document.querySelectorAll("[data-sample]").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    const k = btn.getAttribute("data-sample");
+    document.getElementById("input").value = k==="random"? randomHebrewText() : SAMPLES[k];
+  });
+});
+document.getElementById("clearBtn").addEventListener("click", ()=>{ document.getElementById("input").value=""; });
+
+document.querySelectorAll("nav.tabs button").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    document.querySelectorAll("nav.tabs button").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    document.querySelectorAll(".tabpanel").forEach(p=>p.classList.remove("active"));
+    document.getElementById("tab-"+btn.getAttribute("data-tab")).classList.add("active");
+    if(btn.getAttribute("data-tab")==="crystal") requestAnimationFrame(drawCrystal);
+    if(btn.getAttribute("data-tab")==="mat") requestAnimationFrame(drawMatrix);
+    if(btn.getAttribute("data-tab")==="trajectory") requestAnimationFrame(drawTrajectory);
+    if(btn.getAttribute("data-tab")==="recorder") requestAnimationFrame(updateStatePreview);
+  });
+});
+
+document.getElementById("analyzeBtn").addEventListener("click", runAnalysis);
+
+function runAnalysis(){
+  const text = document.getElementById("input").value;
+  const {flat, words} = normalizeHebrew(text);
+  if(flat.length < 2){
+    document.getElementById("inputInfo").textContent = "Potrzeba co najmniej 2 rozpoznanych liter hebrajskich.";
+    return;
+  }
+  state.flat = flat; state.words = words;
+  const {counts, probs} = buildFrequency(flat);
+  state.counts=counts; state.probs=probs;
+  state.Tcounts = buildTransitionCounts(flat);
+  state.Tprob = rowNormalize(state.Tcounts);
+  document.getElementById("inputInfo").textContent = flat.length + " liter rozpoznanych · " + words.length + " fraz.";
+
+  renderSeqTab();
+  renderMatTab();
+  renderCrystalTab();
+  renderOrbitTab();
+  renderResTab();
+  renderSwarmTab();
+  renderLabTab();
+  renderTrajectoryTab();
+  renderInvariantTab();
+  renderCounterTab();
+  updateStatePreview();
+}
+
+// ---------- TAB 1 ----------
+function renderSeqTab(){
+  document.getElementById("freqPanel").style.display="block";
+  const gemOn = document.getElementById("showGematria").checked;
+  document.getElementById("gemHead").style.display = gemOn? "" : "none";
+
+  // sekwencja / frazy
+  const seqPanel = document.getElementById("seqPanel");
+  seqPanel.innerHTML = "<h2><span class='n'>§</span>Sekwencja</h2>";
+  const box = document.createElement("div");
+  box.className = "hebline";
+  if(document.getElementById("keepWords").checked && state.words.length>1){
+    box.innerHTML = state.words.map(w=> w.map(i=>LETTERS[i].heb).join("")).join(" &nbsp;·&nbsp; ");
+  } else {
+    box.textContent = state.flat.map(i=>LETTERS[i].heb).join("");
+  }
+  seqPanel.appendChild(box);
+
+  document.getElementById("statLen").textContent = state.flat.length;
+  const uniq = state.counts.filter(c=>c>0).length;
+  document.getElementById("statUniq").textContent = uniq + " / 27";
+
+  updateEntropyStats();
+  renderZipf();
+  renderFreqTable(gemOn);
+
+  document.getElementById("alphaSlider").oninput = e=>{ document.getElementById("alphaVal").textContent = (+e.target.value).toFixed(1); updateEntropyStats(); };
+  document.getElementById("qSlider").oninput = e=>{ document.getElementById("qVal").textContent = (+e.target.value).toFixed(1); updateEntropyStats(); };
+  document.getElementById("showGematria").onchange = renderSeqTab;
+  document.getElementById("keepWords").onchange = renderSeqTab;
+}
+function updateEntropyStats(){
+  const probs = state.probs;
+  document.getElementById("statShannon").textContent = shannon(probs).toFixed(3);
+  const a = +document.getElementById("alphaSlider").value;
+  const q = +document.getElementById("qSlider").value;
+  document.getElementById("statRenyi").textContent = renyi(probs,a).toFixed(3);
+  document.getElementById("statTsallis").textContent = tsallis(probs,q).toFixed(3);
+}
+function renderZipf(){
+  const sorted = state.counts.map((c,i)=>({c,i})).filter(x=>x.c>0).sort((a,b)=>b.c-a.c);
+  const max = sorted.length? sorted[0].c : 1;
+  const el = document.getElementById("zipfChart"); el.innerHTML="";
+  sorted.forEach(x=>{
+    const bar=document.createElement("div"); bar.className="bar";
+    bar.style.height = Math.max(3,(x.c/max)*88)+"px";
+    bar.title = LETTERS[x.i].heb+" ("+LETTERS[x.i].name+"): "+x.c;
+    el.appendChild(bar);
+  });
+  const fit=zipfFit(sorted);
+  const note=document.getElementById("zipfFitNote");
+  note.textContent = fit ? `Dopasowanie log-log: s=${fit.s.toFixed(3)}, R²=${fit.r2.toFixed(3)} (tylko symbole obecne, ranga 1…${sorted.length}).` : "Brak wystarczającej liczby rang do dopasowania prawa Zipfa.";
+}
+function zipfFit(sorted){
+  if(sorted.length<2) return null;
+  const xs=sorted.map((_,k)=>Math.log(k+1));
+  const ys=sorted.map(x=>Math.log(x.c));
+  const mx=xs.reduce((a,b)=>a+b,0)/xs.length;
+  const my=ys.reduce((a,b)=>a+b,0)/ys.length;
+  let num=0,den=0;
+  for(let i=0;i<xs.length;i++){ num+=(xs[i]-mx)*(ys[i]-my); den+=(xs[i]-mx)**2; }
+  if(den===0) return null;
+  const slope=num/den;
+  const intercept=my-slope*mx;
+  let ssRes=0,ssTot=0;
+  for(let i=0;i<ys.length;i++){ const pred=intercept+slope*xs[i]; ssRes+=(ys[i]-pred)**2; ssTot+=(ys[i]-my)**2; }
+  return {s:-slope,r2:ssTot>0?1-ssRes/ssTot:1};
+}
+function renderFreqTable(gemOn){
+  const tbody = document.querySelector("#freqTable tbody"); tbody.innerHTML="";
+  const rows = state.counts.map((c,i)=>({c,i})).filter(x=>x.c>0).sort((a,b)=>b.c-a.c);
+  rows.forEach(r=>{
+    const p = idxToPoint(r.i); const layer = layerOf(p);
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${LAYER_COLOR[layer]}"></span></td>
+      <td class="heb-cell">${LETTERS[r.i].heb} <span style="color:var(--muted);font-family:var(--sans);font-size:0.7rem">${LETTERS[r.i].name}</span></td>
+      <td>${LAYER_LABEL[layer]}</td><td>${r.c}</td>
+      <td style="display:${gemOn?"":"none"}">${GEMATRIA[r.i]}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ---------- TAB 2 ----------
+function renderMatTab(){
+  document.getElementById("matEmpty").style.display="none";
+  document.getElementById("matPanel").style.display="block";
+  document.getElementById("spectPanel").style.display="block";
+  document.getElementById("collatzPanel").style.display="block";
+  drawMatrix();
+  const eig = fiedlerFromTransition(state.Tcounts);
+  const el = document.getElementById("spectChart"); el.innerHTML="";
+  const max = Math.max(...eig, 1e-6);
+  eig.forEach((v,i)=>{
+    const bar=document.createElement("div"); bar.className="bar"+(i===1?" hl":"");
+    bar.style.height = Math.max(2,(v/max)*88)+"px";
+    bar.title = "λ"+(i+1)+" = "+v.toFixed(4);
+    el.appendChild(bar);
+  });
+  document.getElementById("lambda1").textContent = eig[0].toFixed(4);
+  document.getElementById("fiedler").textContent = eig[1].toFixed(4);
+
+  const collCounts = collatzTransitionCounts();
+  const collProb = rowNormalize(collCounts);
+  const activeRowsForFrob = [];
+  for(let i=0;i<N;i++){ let has=false; for(let j=0;j<N;j++) if(state.Tcounts[i][j]>0||collCounts[i][j]>0){has=true;break;} if(has) activeRowsForFrob.push(i); }
+  document.getElementById("statFrob").textContent = frobeniusActive(state.Tprob, collProb, activeRowsForFrob).toFixed(3);
+  document.getElementById("statKL").textContent = klRows(state.Tprob, collProb, state.probs).toFixed(3);
+  const jsEl = document.getElementById("statJS");
+  if(jsEl){ const collLetterFreq = buildFrequency(collatzLetterSeq()).probs; jsEl.textContent = jsDivergence(state.probs, collLetterFreq).toFixed(4); }
+}
+function drawMatrix(){
+  const canvas = document.getElementById("matCanvas");
+  if(!canvas.offsetParent) return;
+  const w = canvas.clientWidth || 300;
+  canvas.width = w; canvas.height = w;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#1b1e26"; ctx.fillRect(0,0,w,w);
+  const cell = w/27;
+  let maxP = 0;
+  for(let i=0;i<27;i++) for(let j=0;j<27;j++) maxP = Math.max(maxP, state.Tprob[i][j]);
+  for(let i=0;i<27;i++) for(let j=0;j<27;j++){
+    const p = state.Tprob[i][j];
+    if(p<=0) continue;
+    const t = Math.log(1+9*(p/(maxP||1))) / Math.log(10);
+    const r = 20+t*(201-20), g=20+t*(161-20), b=20+t*(90-20);
+    ctx.fillStyle = `rgb(${r},${g},${b})`;
+    ctx.fillRect(j*cell, i*cell, Math.max(1,cell-0.5), Math.max(1,cell-0.5));
+  }
+  canvas.onclick = (e)=>{
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX-rect.left)*(canvas.width/rect.width);
+    const y = (e.clientY-rect.top)*(canvas.height/rect.height);
+    const j = Math.floor(x/cell), i = Math.floor(y/cell);
+    if(i>=0&&i<27&&j>=0&&j<27){
+      document.getElementById("matReadout").innerHTML =
+        `<b>${LETTERS[i].heb} → ${LETTERS[j].heb}</b> (${LETTERS[i].name} → ${LETTERS[j].name}): p=${(state.Tprob[i][j]*100).toFixed(1)}%, n=${state.Tcounts[i][j]}`;
+    }
+  };
+}
+
+// ---------- TAB 3: CRYSTAL ----------
+let crystalRot = {x:-0.5, y:0.6};
+let crystalDrag = null;
+let crystalDidDrag = false;
+function drawCrystal(){
+  const canvas = document.getElementById("crystalCanvas");
+  if(!canvas.offsetParent) return;
+  const w = canvas.clientWidth || 300;
+  const h = Math.round(w*0.9);
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#1b1e26"; ctx.fillRect(0,0,w,h);
+  const cx=w/2, cy=h/2, scale = w*0.14;
+  const cosx=Math.cos(crystalRot.x), sinx=Math.sin(crystalRot.x);
+  const cosy=Math.cos(crystalRot.y), siny=Math.sin(crystalRot.y);
+  function project(p){
+    let [x,y,z]=p;
+    let y1 = y*cosx - z*sinx, z1 = y*sinx + z*cosx;
+    let x2 = x*cosy + z1*siny, z2 = -x*siny + z1*cosy;
+    const depth = 4 + z2;
+    const sx = cx + (x2*scale) * (4/depth);
+    const sy = cy + (y1*scale) * (4/depth);
+    return {sx,sy,z:z2};
+  }
+  const pts = [];
+  for(let i=0;i<27;i++){ const p=idxToPoint(i); const pr=project(p); pts.push({idx:i,...pr}); }
+
+  // krawędzie kryształu (siatka 3x3x3, tylko sąsiednie punkty)
+  ctx.strokeStyle = "rgba(138,141,151,0.18)"; ctx.lineWidth=1;
+  for(let i=0;i<27;i++) for(let j=i+1;j<27;j++){
+    const a=idxToPoint(i), b=idxToPoint(j);
+    let diff=0; for(let k=0;k<3;k++) diff+=Math.abs(a[k]-b[k]);
+    if(diff===1){
+      const pa=pts[i], pb=pts[j];
+      ctx.beginPath(); ctx.moveTo(pa.sx,pa.sy); ctx.lineTo(pb.sx,pb.sy); ctx.stroke();
+    }
+  }
+
+  // ścieżka tekstu
+  ctx.strokeStyle = "rgba(139,127,214,0.85)"; ctx.lineWidth=2;
+  ctx.beginPath();
+  state.flat.forEach((idx,k)=>{
+    const p = pts[idx];
+    if(k===0) ctx.moveTo(p.sx,p.sy); else ctx.lineTo(p.sx,p.sy);
+  });
+  ctx.stroke();
+
+  // punkty
+  pts.sort((a,b)=>a.z-b.z);
+  pts.forEach(p=>{
+    const layer = layerOf(idxToPoint(p.idx));
+    const r = layer==="core"?7:layer==="axes"?5.5:layer==="faces"?4.5:4;
+    ctx.beginPath(); ctx.arc(p.sx,p.sy,r,0,Math.PI*2);
+    ctx.fillStyle = LAYER_COLOR[layer];
+    ctx.globalAlpha = 0.55 + 0.45*((p.z+4)/8);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  });
+  if(state.flat.length){
+    const startP = pts.find(p=>p.idx===state.flat[0]);
+    const endP = pts.find(p=>p.idx===state.flat[state.flat.length-1]);
+    ctx.strokeStyle="#7fae8a"; ctx.lineWidth=2; ctx.beginPath(); ctx.arc(startP.sx,startP.sy,9,0,Math.PI*2); ctx.stroke();
+    ctx.strokeStyle="#c9a15a"; ctx.beginPath(); ctx.arc(endP.sx,endP.sy,9,0,Math.PI*2); ctx.stroke();
+  }
+
+  canvas._pts = pts;
+}
+function wireCrystalDrag(){
+  const canvas = document.getElementById("crystalCanvas");
+  const start = (x,y)=>{ crystalDidDrag=false; crystalDrag={x,y,rx:crystalRot.x,ry:crystalRot.y}; };
+  const move = (x,y)=>{
+    if(!crystalDrag) return;
+    const dx=x-crystalDrag.x, dy=y-crystalDrag.y;
+    if(Math.hypot(dx,dy)>3) crystalDidDrag=true;
+    crystalRot.y = crystalDrag.ry + dx*0.01;
+    crystalRot.x = crystalDrag.rx + dy*0.01;
+    drawCrystal();
+  };
+  const end = ()=>{ crystalDrag=null; };
+  canvas.addEventListener("pointerdown", e=>start(e.clientX,e.clientY));
+  canvas.addEventListener("pointermove", e=>move(e.clientX,e.clientY));
+  window.addEventListener("pointerup", end);
+  canvas.addEventListener("click", e=>{
+    if(crystalDidDrag){ crystalDidDrag=false; return; }
+    const rect = canvas.getBoundingClientRect();
+    const x = (e.clientX-rect.left)*(canvas.width/rect.width);
+    const y = (e.clientY-rect.top)*(canvas.height/rect.height);
+    const pts = canvas._pts || [];
+    let best=null, bd=1e9;
+    pts.forEach(p=>{ const d=(p.sx-x)**2+(p.sy-y)**2; if(d<bd){bd=d;best=p;} });
+    if(best && bd<400){
+      const positions = state.flat.map((v,i)=>v===best.idx?i:-1).filter(i=>i>=0);
+      document.getElementById("crystalReadout").innerHTML =
+        `<b>${LETTERS[best.idx].heb} (${LETTERS[best.idx].name})</b> — ${LAYER_LABEL[layerOf(idxToPoint(best.idx))]} · pozycje w tekście: ${positions.length? positions.join(", ") : "brak"}`;
+    }
+  });
+}
+function renderCrystalTab(){
+  document.getElementById("crystalEmpty").style.display="none";
+  document.getElementById("crystalPanel").style.display="block";
+  let energy=0, jumps=0;
+  for(let i=0;i<state.flat.length-1;i++){
+    const a=idxToPoint(state.flat[i]), b=idxToPoint(state.flat[i+1]);
+    energy += Math.sqrt((a[0]-b[0])**2+(a[1]-b[1])**2+(a[2]-b[2])**2);
+    if(layerOf(a)!==layerOf(b)) jumps++;
+  }
+  document.getElementById("statEnergy").textContent = energy.toFixed(2);
+  document.getElementById("statLayerJumps").textContent = jumps + " / " + (state.flat.length-1);
+  drawCrystal();
+}
+
+// ---------- TAB 4: ORBITS ----------
+function renderOrbitTab(){
+  document.getElementById("orbitEmpty").style.display="none";
+  document.getElementById("orbitPanel").style.display="block";
+  document.getElementById("orbitListPanel").style.display="block";
+  document.getElementById("linesPanel").style.display="block";
+
+  const layerCounts = {core:0,axes:0,faces:0,corners:0};
+  state.flat.forEach(idx=>{ layerCounts[layerOf(idxToPoint(idx))]++; });
+  const el = document.getElementById("regionChart"); el.innerHTML="";
+  const order=["core","axes","faces","corners"];
+  const maxV = Math.max(...order.map(k=>layerCounts[k]/state.flat.length), ...order.map(k=>LAYER_EXPECTED[k]));
+  order.forEach(k=>{
+    const obs=document.createElement("div"); obs.className="bar";
+    obs.style.height=Math.max(2,(layerCounts[k]/state.flat.length/maxV)*88)+"px";
+    obs.style.background=LAYER_COLOR[k];
+    obs.title = LAYER_LABEL[k]+" obserwowane: "+(layerCounts[k]/state.flat.length*100).toFixed(1)+"%";
+    el.appendChild(obs);
+    const exp=document.createElement("div"); exp.className="bar";
+    exp.style.height=Math.max(2,(LAYER_EXPECTED[k]/maxV)*88)+"px";
+    exp.style.opacity="0.35";
+    exp.title = LAYER_LABEL[k]+" oczekiwane: "+(LAYER_EXPECTED[k]*100).toFixed(1)+"%";
+    el.appendChild(exp);
+  });
+
+  const coreCount = layerCounts.core;
+  document.getElementById("coreNote").textContent = coreCount>0
+    ? `Rdzeń (ץ, Cadi k.) pojawia się ${coreCount}× w tekście.`
+    : "Rdzeń (ץ, Cadi k.) nie występuje w tym tekście.";
+
+  const uniqueLetters = state.counts.map((c,i)=>c>0?i:-1).filter(i=>i>=0);
+  const orbitList = document.getElementById("orbitList"); orbitList.innerHTML="";
+  const shown = new Set();
+  uniqueLetters.forEach(idx=>{
+    const p = idxToPoint(idx); const layer = layerOf(p);
+    const key = layer;
+    if(shown.has(key)) return; shown.add(key);
+    const orbit = ohOrbit(p).map(pointToIdx);
+    const wrap = document.createElement("div");
+    wrap.style.marginBottom="8px";
+    wrap.innerHTML = `<div class="caption"><b style="color:var(--parchment)">${LAYER_LABEL[layer]}</b> — orbita O_h, rozmiar ${orbit.length}</div>`;
+    orbit.forEach(oi=>{
+      const chip=document.createElement("span");
+      chip.className="orbitchip layer-"+layer;
+      chip.textContent = LETTERS[oi].heb;
+      chip.title = LETTERS[oi].name + (state.counts[oi]>0? " · w tekście ×"+state.counts[oi] : "");
+      if(state.counts[oi]===0) chip.style.opacity="0.4";
+      wrap.appendChild(chip);
+    });
+    orbitList.appendChild(wrap);
+  });
+
+  let lineCount=0, total=0; const examples=[];
+  for(let i=0;i<state.flat.length-2;i++){
+    total++;
+    const a=state.flat[i],b=state.flat[i+1],c=state.flat[i+2];
+    if(collinear(a,b,c)){ lineCount++; if(examples.length<6) examples.push([i,a,b,c]); }
+  }
+  document.getElementById("statLines").textContent = lineCount;
+  document.getElementById("statLinesTotal").textContent = total;
+  const exEl = document.getElementById("lineExamples"); exEl.innerHTML="";
+  examples.forEach(([pos,a,b,c])=>{
+    const d=document.createElement("div"); d.className="caption";
+    d.innerHTML = `pozycja ${pos}: <span class="heb">${LETTERS[a].heb}${LETTERS[b].heb}${LETTERS[c].heb}</span> (${LETTERS[a].name}·${LETTERS[b].name}·${LETTERS[c].name})`;
+    exEl.appendChild(d);
+  });
+
+  // Baseline permutacyjny: ile linii dałaby losowa permutacja TEJ SAMEJ
+  // wieloliterowej próbki (te same częstości, losowa kolejność)?
+  const rngLine = mulberry32((Date.now()^0x2545F491)>>>0);
+  const trialsLine = 300;
+  const nullCounts=[];
+  for(let t=0;t<trialsLine;t++){
+    const shuf = shuffleInPlace(state.flat.slice(), rngLine);
+    let c=0; for(let i=0;i<shuf.length-2;i++) if(collinear(shuf[i],shuf[i+1],shuf[i+2])) c++;
+    nullCounts.push(c);
+  }
+  nullCounts.sort((x,y)=>x-y);
+  const meanNull = nullCounts.reduce((s,v)=>s+v,0)/(nullCounts.length||1);
+  const pct = percentileRank(nullCounts, lineCount);
+  const extreme = pct<2.5||pct>97.5;
+  const baselineEl = document.getElementById("linesBaseline");
+  if(baselineEl){
+    baselineEl.innerHTML = `Baseline (${trialsLine} losowych permutacji tej samej sekwencji): średnio <b>${meanNull.toFixed(2)}</b> linii.
+      Obserwowane ${lineCount} leży na percentylu <span class="${extreme?'diff-ok':''}">${pct.toFixed(1)}</span>${extreme?' (poza typowym zakresem 2.5–97.5)':' (w typowym zakresie losowej kolejności)'}.`;
+  }
+}
+
+
+// ============================================================
+// MODUŁ: Operator / Invariant / Counterfactual Lab
+// ============================================================
+const OP_BASE = {
+  identity:p=>p.slice(),
+  flipX:p=>[-p[0],p[1],p[2]], flipY:p=>[p[0],-p[1],p[2]], flipZ:p=>[p[0],p[1],-p[2]],
+  swapXY:p=>[p[1],p[0],p[2]], swapYZ:p=>[p[0],p[2],p[1]], swapXZ:p=>[p[2],p[1],p[0]]
+};
+function randomOhFn(){
+  const perm=PERMS[Math.floor(Math.random()*PERMS.length)], sign=SIGNS[Math.floor(Math.random()*SIGNS.length)];
+  return {name:"random O_h", fn:p=>[p[perm[0]]*sign[0],p[perm[1]]*sign[1],p[perm[2]]*sign[2]]};
+}
+// Kontrola negatywna: losowa bijekcja punktów 0..26, NIE respektująca
+// struktury sześcianu (nie jest elementem O_h). Ma na celu pokazać, że
+// zachowanie warstwy/promienia pod O_h nie jest trywialną własnością
+// KAŻDEJ permutacji, tylko czegoś specyficznego dla tej grupy symetrii.
+function randomS27Perm(){
+  const idxs=[...Array(N).keys()]; shuffleInPlace(idxs, Math.random);
+  const map={}; idxs.forEach((v,i)=>{ map[i]=v; });
+  return {name:"random S_27 (poza O_h)", isIndexMap:true, indexFn:i=>map[i]};
+}
+function getOperator(key){
+  if(key==='randomOh') return randomOhFn();
+  if(key==='randomS27') return randomS27Perm();
+  return {name:key,fn:OP_BASE[key]||OP_BASE.identity};
+}
+function transformSeq(seq,op){
+  if(op.isIndexMap) return seq.map(i=>op.indexFn(i));
+  return seq.map(i=>pointToIdx(op.fn(idxToPoint(i))));
+}
+function radius2(p){return p[0]*p[0]+p[1]*p[1]+p[2]*p[2];}
+function orbitKey(i){ return ohOrbit(idxToPoint(i)).map(pointToIdx).sort((a,b)=>a-b).join(','); }
+function symbolInspector(idx){
+  const p=idxToPoint(idx), orb=ohOrbit(p).map(pointToIdx);
+  const positions=state.flat.map((v,i)=>v===idx?i+1:null).filter(v=>v!==null);
+  const lines=[];
+  for(let j=0;j<N;j++) if(j!==idx && collinear(idx,j,pointToIdx([p[0]*-1,p[1]*-1,p[2]*-1]))){ lines.push(j); }
+  return {p,orb,positions,layer:layerOf(p),radius:Math.sqrt(radius2(p)),lines};
+}
+function renderInspector(idx){
+  if(!state.flat.length) return;
+  const d=symbolInspector(idx), l=LETTERS[idx];
+  const mv = MOEBIUS_VALIDATION[idx];
+  document.getElementById('inspectorOut').innerHTML=`<div class="kv">
+    <div>Symbol</div><div>${l.heb} · ${l.name}</div>
+    <div>Numer</div><div>${l.num}</div>
+    <div>Trigram</div><div>[${d.p.join(', ')}]</div>
+    <div>Filar μ (blok)</div><div>${mv.pillarBlock} · n=${mv.pillarN.join(',')}</div>
+    <div>Warstwa</div><div>${LAYER_LABEL[d.layer]}</div>
+    <div>Promień</div><div>${d.radius.toFixed(3)}</div>
+    <div>Rozmiar orbity O_h</div><div>${d.orb.length}</div>
+    <div>Pozycje w tekście</div><div>${d.positions.length?d.positions.join(', '):'—'}</div>
+  </div>`;
+  const el=document.getElementById('inspectorOrbit'); el.innerHTML='';
+  d.orb.forEach(oi=>{const x=document.createElement('span');x.className='orbitchip layer-'+layerOf(idxToPoint(oi));x.textContent=LETTERS[oi].heb;x.title=LETTERS[oi].name;el.appendChild(x);});
+}
+function renderLabTab(){
+  if(!state.flat.length)return;
+  document.getElementById('labEmpty').style.display='none'; document.getElementById('labPanel').style.display='block'; document.getElementById('inspectorPanel').style.display='block';
+  document.getElementById('opOrig').textContent=state.flat.map(i=>LETTERS[i].heb).join('');
+  const sel=document.getElementById('inspectorSelect'); sel.innerHTML=LETTERS.map((l,i)=>`<option value="${i}">${l.heb} · ${l.name} · [${l.tri.join(',')}]</option>`).join('');
+  sel.value=String(state.flat[0]); renderInspector(state.flat[0]);
+  sel.onchange=e=>renderInspector(+e.target.value);
+  document.getElementById('operatorBtn').onclick=()=>{
+    const op=getOperator(document.getElementById('operatorSelect').value), out=transformSeq(state.flat,op); state.lastOperator=op.name;
+    let changed=0,layerChanged=0; state.flat.forEach((i,k)=>{if(i!==out[k])changed++;if(layerOf(idxToPoint(i))!==layerOf(idxToPoint(out[k])))layerChanged++;});
+    document.getElementById('opChanged').textContent=`${changed} / ${state.flat.length}`;
+    document.getElementById('opLayerChanged').textContent=`${layerChanged} / ${state.flat.length}`;
+    document.getElementById('opOut').textContent=out.map(i=>LETTERS[i].heb).join('');
+    const isControl = document.getElementById('operatorSelect').value === 'randomS27';
+    document.getElementById('opNote').textContent = isControl
+      ? `Operator: ${op.name}. To jest kontrola negatywna — losowa bijekcja punktów NIE należąca do O_h. Jeśli zmiany warstwy tutaj są wyraźnie częstsze niż dla operatorów O_h powyżej, to potwierdza, że zachowanie warstwy nie jest przypadkowe, tylko specyficzne dla tej grupy symetrii.`
+      : `Operator: ${op.name}. Promień i warstwa są własnościami geometrycznymi zachowywanymi przez O_h.`;
+  };
+}
+
+// ---------- TAB 8: TRAJECTORY ----------
+let trajTimer=null;
+function drawTrajectory(highlight=-1){
+  const canvas=document.getElementById('trajectoryCanvas'); if(!canvas||!canvas.offsetParent||!state.flat.length)return;
+  const w=canvas.clientWidth||300,h=Math.round(w*.9); canvas.width=w;canvas.height=h; const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#1b1e26';ctx.fillRect(0,0,w,h); const cx=w/2,cy=h/2,scale=w*.14;
+  const rx=-.55,ry=.65,cosx=Math.cos(rx),sinx=Math.sin(rx),cosy=Math.cos(ry),siny=Math.sin(ry);
+  function project(p){let[x,y,z]=p;let y1=y*cosx-z*sinx,z1=y*sinx+z*cosx;let x2=x*cosy+z1*siny,z2=-x*siny+z1*cosy;let d=4+z2;return {x:cx+x2*scale*4/d,y:cy+y1*scale*4/d,z:z2};}
+  const pts=LETTERS.map((_,i)=>project(idxToPoint(i)));
+  ctx.strokeStyle='rgba(138,141,151,.16)';ctx.lineWidth=1;
+  for(let i=0;i<N;i++)for(let j=i+1;j<N;j++){let d=idxToPoint(i).reduce((s,v,k)=>s+Math.abs(v-idxToPoint(j)[k]),0);if(d===1){ctx.beginPath();ctx.moveTo(pts[i].x,pts[i].y);ctx.lineTo(pts[j].x,pts[j].y);ctx.stroke();}}
+  if(state.flat.length>1){ctx.strokeStyle='rgba(139,127,214,.9)';ctx.lineWidth=2;ctx.beginPath();state.flat.forEach((idx,k)=>{const q=pts[idx];if(k===0)ctx.moveTo(q.x,q.y);else ctx.lineTo(q.x,q.y);});ctx.stroke();}
+  LETTERS.forEach((l,i)=>{const q=pts[i],lay=layerOf(idxToPoint(i));ctx.beginPath();ctx.arc(q.x,q.y,lay==='core'?7:4.5,0,Math.PI*2);ctx.fillStyle=LAYER_COLOR[lay];ctx.globalAlpha=.75;ctx.fill();ctx.globalAlpha=1;if(i===highlight){ctx.strokeStyle='#e9e5da';ctx.lineWidth=2;ctx.beginPath();ctx.arc(q.x,q.y,9,0,Math.PI*2);ctx.stroke();}});
+  canvas._trajPts=pts;
+}
+function renderTrajectoryTab(){
+  if(!state.flat.length)return;document.getElementById('trajectoryEmpty').style.display='none';document.getElementById('trajectoryPanel').style.display='block';
+  let e=0;for(let i=0;i<state.flat.length-1;i++){const a=idxToPoint(state.flat[i]),b=idxToPoint(state.flat[i+1]);e+=Math.sqrt(a.reduce((s,v,k)=>s+(v-b[k])**2,0));}
+  document.getElementById('trajLength').textContent=state.flat.length;document.getElementById('trajMeanStep').textContent=(state.flat.length>1?e/(state.flat.length-1):0).toFixed(3);drawTrajectory();
+  document.getElementById('trajStopBtn').onclick=()=>{if(trajTimer)clearInterval(trajTimer);trajTimer=null;drawTrajectory();};
+  document.getElementById('trajPlayBtn').onclick=()=>{if(trajTimer)clearInterval(trajTimer);let k=0;trajTimer=setInterval(()=>{if(k>=state.flat.length){clearInterval(trajTimer);trajTimer=null;return;}const idx=state.flat[k];document.getElementById('trajReadout').innerHTML=`<b>${k+1}/${state.flat.length}</b> · ${LETTERS[idx].heb} (${LETTERS[idx].name}) · ${LAYER_LABEL[layerOf(idxToPoint(idx))]} · [${idxToPoint(idx).join(',')}]`;drawTrajectory(idx);k++;},160);};
+}
+
+// ---------- TAB 9: INVARIANTS ----------
+function renderInvariantTab(){
+  if(!state.flat.length)return;document.getElementById('invEmpty').style.display='none';document.getElementById('invPanel').style.display='block';
+  document.getElementById('invBtn').onclick=()=>{
+    const op=getOperator(document.getElementById('invSelect').value),out=transformSeq(state.flat,op);
+    let sameLayer=0,sameRadius=0,sameOrbit=0,samePoint=0;
+    state.flat.forEach((i,k)=>{const j=out[k];if(layerOf(idxToPoint(i))===layerOf(idxToPoint(j)))sameLayer++;if(radius2(idxToPoint(i))===radius2(idxToPoint(j)))sameRadius++;if(orbitKey(i)===orbitKey(j))sameOrbit++;if(i===j)samePoint++;});
+    const n=state.flat.length;
+    const row=(name,val,why)=>`<div class="stat" style="margin-bottom:7px"><div class="lbl">${name}</div><div class="val ${val===n?'diff-ok':'diff-no'}">${val}/${n}</div><div class="caption">${why}</div></div>`;
+    document.getElementById('invOut').innerHTML=row('Punkt dokładnie niezmieniony',samePoint,'symbol pozostaje w tym samym punkcie')+row('Warstwa',sameLayer,'core / axes / faces / corners')+row('Promień od centrum',sameRadius,'wartość x²+y²+z²')+row('Orbita O_h',sameOrbit,'przynależność do tej samej orbity');
+  };
+}
+
+// ---------- TAB 10: COUNTERFACTUAL ----------
+function shuffleInPlace(a,rng){for(let i=a.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function counterfactualSeq(kind){
+  const rng=mulberry32((Date.now()^0x9e3779b9)>>>0);
+  if(kind==='reverse')return state.flat.slice().reverse();
+  if(kind==='shuffle')return shuffleInPlace(state.flat.slice(),rng);
+  if(kind==='layer'){
+    const groups={core:[],axes:[],faces:[],corners:[]};state.flat.forEach(i=>groups[layerOf(idxToPoint(i))].push(i));Object.values(groups).forEach(g=>shuffleInPlace(g,rng));
+    const out=[];const pools={core:groups.core.slice(),axes:groups.axes.slice(),faces:groups.faces.slice(),corners:groups.corners.slice()};state.flat.forEach(i=>out.push(pools[layerOf(idxToPoint(i))].shift()));return out;
+  }
+  const groups={};state.flat.forEach(i=>{const k=orbitKey(i);(groups[k]??=[]).push(i);});Object.values(groups).forEach(g=>shuffleInPlace(g,rng));const pools={};for(const k in groups)pools[k]=groups[k].slice();return state.flat.map(i=>pools[orbitKey(i)].shift());
+}
+function structuralProfile(seq){
+  const c=buildFrequency(seq),t=buildTransitionCounts(seq);let e=0,j=0;for(let i=0;i<seq.length-1;i++){const a=idxToPoint(seq[i]),b=idxToPoint(seq[i+1]);e+=Math.sqrt(a.reduce((s,v,k)=>s+(v-b[k])**2,0));if(layerOf(a)!==layerOf(b))j++;}return {H:shannon(c.probs),energy:e,jumps:j,unique:c.counts.filter(x=>x>0).length,T:t};
+}
+function percentileRank(sortedArr, value){
+  // udział prób null <= wartość obserwowana, w %
+  let lo=0,hi=sortedArr.length;
+  while(lo<hi){const mid=(lo+hi)>>1; if(sortedArr[mid]<=value) lo=mid+1; else hi=mid;}
+  return sortedArr.length? (lo/sortedArr.length*100) : 50;
+}
+function runNullDistribution(kind, trials){
+  const a = structuralProfile(state.flat);
+  const dH=[], dE=[], dJ=[];
+  for(let t=0;t<trials;t++){
+    const out = counterfactualSeq(kind);
+    const b = structuralProfile(out);
+    dH.push(b.H-a.H); dE.push(b.energy-a.energy); dJ.push(b.jumps-a.jumps);
+  }
+  dH.sort((x,y)=>x-y); dE.sort((x,y)=>x-y); dJ.sort((x,y)=>x-y);
+  return {a, dH, dE, dJ};
+}
+function renderCounterTab(){
+  if(!state.flat.length)return;document.getElementById('counterEmpty').style.display='none';document.getElementById('counterPanel').style.display='block';
+  document.getElementById('counterBtn').onclick=()=>{
+    const kind = document.getElementById('counterSelect').value;
+    const out=counterfactualSeq(kind), a=structuralProfile(state.flat), b=structuralProfile(out);
+    state.lastCounterfactual=out;
+    document.getElementById('counterOrig').textContent=state.flat.map(i=>LETTERS[i].heb).join('');
+    document.getElementById('counterOut').textContent=out.map(i=>LETTERS[i].heb).join('');
+    const trials = Math.min(500, state.flat.length>200?150:500);
+    const {dH,dE,dJ} = runNullDistribution(kind, trials);
+    const dHobs=b.H-a.H, dEobs=b.energy-a.energy, dJobs=b.jumps-a.jumps;
+    const pctH=percentileRank(dH,dHobs), pctE=percentileRank(dE,dEobs), pctJ=percentileRank(dJ,dJobs);
+    const pctNote=(p)=>{ const extreme = p<2.5||p>97.5; return `<span class="${extreme?'diff-ok':''}" style="font-family:var(--mono);font-size:0.68rem">percentyl ${p.toFixed(1)} / ${trials} prób null</span>`; };
+    document.getElementById('counterCompare').innerHTML=`<div class="statgrid">
+      <div class="stat"><div class="lbl">Δ entropii Shannon</div><div class="val">${dHobs.toFixed(3)}</div>${pctNote(pctH)}</div>
+      <div class="stat"><div class="lbl">Δ energii trajektorii</div><div class="val">${dEobs.toFixed(3)}</div>${pctNote(pctE)}</div>
+      <div class="stat"><div class="lbl">Δ zmian warstwy</div><div class="val">${dJobs}</div>${pctNote(pctJ)}</div>
+      <div class="stat"><div class="lbl">Unikalne symbole</div><div class="val">${b.unique}/${a.unique}</div></div>
+      </div>
+      <div class="caption" style="margin-top:8px">Percentyl liczony względem ${trials} niezależnych prób tego samego null modelu („${kind}"). Wartości poniżej 2.5 lub powyżej 97.5 percentyla (podświetlone) leżą poza typowym zakresem dla tego modelu losowego.</div>`;
+  };
+}
+
+// ---------- TAB 11: RECORDER ----------
+function makeExperiment(){
+  return {version:'3.1',created:new Date().toISOString(),
+    alphabet:LETTERS.map((l,i)=>({name:l.name,heb:l.heb,tri:l.tri,num:l.num,pillarBlock:MOEBIUS_VALIDATION[i].pillarBlock,pillarN:MOEBIUS_VALIDATION[i].pillarN})),
+    moebiusValidated: MOEBIUS_ALL_VALID,
+    text:state.flat.map(i=>LETTERS[i].heb).join(''),indices:state.flat.slice(),
+    parameters:{keepWords:document.getElementById('keepWords').checked,showGematria:document.getElementById('showGematria').checked},
+    results:{length:state.flat.length,unique:state.counts.filter(c=>c>0).length,shannon:shannon(state.probs),operator:state.lastOperator||null,counterfactual:state.lastCounterfactual?state.lastCounterfactual.map(i=>LETTERS[i].heb).join(''):null}};
+}
+function updateStatePreview(){if(!state.flat.length)return;state.experiment=makeExperiment();document.getElementById('statePreview').textContent=JSON.stringify(state.experiment,null,2);}
+function exportMatrixCsv(){
+  if(!state.Tcounts) return;
+  const header = "," + LETTERS.map(l=>l.heb).join(",");
+  const rows = state.Tcounts.map((row,i)=> LETTERS[i].heb + "," + row.join(","));
+  const csv = [header, ...rows].join("\n");
+  const blob = new Blob([csv], {type:"text/csv"}), url = URL.createObjectURL(blob), a = document.createElement("a");
+  a.href = url; a.download = "nvmerokleion-transition-matrix.csv"; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url), 500);
+}
+function renderRecorderTab(){updateStatePreview();document.getElementById('exportBtn').onclick=()=>{const data=JSON.stringify(makeExperiment(),null,2),blob=new Blob([data],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='nvmerokleion-experiment.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),500);};document.getElementById('exportCsvBtn').onclick=exportMatrixCsv;document.getElementById('replayBtn').onclick=()=>document.getElementById('replayFile').click();document.getElementById('replayFile').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(!Array.isArray(d.indices)||d.indices.some(i=>!Number.isInteger(i)||i<0||i>=N))throw new Error('Nieprawidłowe indices');state.flat=d.indices.slice();state.words=[state.flat.slice()];const x=buildFrequency(state.flat);state.counts=x.counts;state.probs=x.probs;state.Tcounts=buildTransitionCounts(state.flat);state.Tprob=rowNormalize(state.Tcounts);document.getElementById('input').value=state.flat.map(i=>LETTERS[i].heb).join('');runAnalysis();alert('Eksperyment odtworzony.');}catch(err){alert('Nie udało się odtworzyć zapisu: '+err.message);}};r.readAsText(f);};}
+
+// ---------- TAB 5: RESONANCE ----------
+function renderResTab(){
+  document.getElementById("resEmpty").style.display="none";
+  document.getElementById("contPanel").style.display="block";
+  document.getElementById("mirrorPanel").style.display="block";
+  document.getElementById("libPanel").style.display="block";
+
+  document.getElementById("mirrorOrig").textContent = state.flat.map(i=>LETTERS[i].heb).join("");
+
+  const collSeq = collatzLetterSeq();
+  const collCounts = collatzTransitionCounts();
+  const collProb = rowNormalize(collCounts);
+  const collFreq = buildFrequency(collSeq).probs;
+  const uniformProbs = Array(27).fill(1/27);
+  const genesisSeq = normalizeHebrew(SAMPLES.genesis).flat;
+  const shemaSeq = normalizeHebrew(SAMPLES.shema).flat;
+  const libs = [
+    {name:"Genesis 1:1", probs: buildFrequency(genesisSeq).probs},
+    {name:"Szma", probs: buildFrequency(shemaSeq).probs},
+    {name:"Collatz (typowy)", probs: collFreq},
+    {name:"Rozkład jednostajny", probs: uniformProbs},
+  ];
+  // Null: rozkład podobieństwa kosinusowego dla losowych tekstów tej
+  // samej długości co bieżąca sekwencja, wobec każdego profilu
+  // referencyjnego. Bez tego "62% podobieństwa" nie wiadomo, czy jest
+  // niezwykłe, czy typowe dla dowolnego tekstu tej długości.
+  const rngRes = mulberry32((Date.now()^0x1f123bb5)>>>0);
+  const nullTrialsRes = state.flat.length>300 ? 80 : 250;
+  const nullSims = {};
+  libs.forEach(l=>{ nullSims[l.name] = []; });
+  for(let t=0;t<nullTrialsRes;t++){
+    const rnd=[]; for(let k=0;k<state.flat.length;k++) rnd.push(Math.floor(rngRes()*27));
+    const rp = buildFrequency(rnd).probs;
+    libs.forEach(l=>{ nullSims[l.name].push(cosineSim(rp, l.probs)); });
+  }
+  Object.keys(nullSims).forEach(k=>nullSims[k].sort((a,b)=>a-b));
+
+  const libList = document.getElementById("libList"); libList.innerHTML="";
+  libs.map(l=>({...l, sim: cosineSim(state.probs, l.probs)}))
+    .sort((a,b)=>b.sim-a.sim)
+    .forEach(l=>{
+      const pct = percentileRank(nullSims[l.name], l.sim);
+      const extreme = pct>97.5;
+      const row=document.createElement("div"); row.style.marginBottom="6px";
+      row.innerHTML = `<div class="caption" style="display:flex;justify-content:space-between"><span>${l.name}</span><span class="accent-brass" style="font-family:var(--mono)">${(l.sim*100).toFixed(1)}%</span></div>
+        <div style="background:var(--hairline);border-radius:4px;height:5px;overflow:hidden"><div style="width:${(l.sim*100).toFixed(1)}%;height:100%;background:var(--violet)"></div></div>
+        <div style="font-family:var(--mono);font-size:0.66rem;color:var(--muted);margin-top:2px">percentyl <span class="${extreme?'diff-ok':''}">${pct.toFixed(1)}</span> vs ${nullTrialsRes} losowych tekstów tej długości</div>`;
+      libList.appendChild(row);
+    });
+
+  document.getElementById("genBtn").onclick = ()=>{
+    const mix = +document.getElementById("mixSlider").value;
+    const len = +document.getElementById("lenSlider").value;
+    const mixed = state.Tprob.map((row,i)=>{
+      const cRow = collProb[i];
+      const combined = row.map((v,j)=> mix*v + (1-mix)*cRow[j]);
+      const s = combined.reduce((a,b)=>a+b,0);
+      return s>0? combined.map(v=>v/s) : combined.map(()=>1/27);
+    });
+    const rng = mulberry32((Date.now()&0xffffffff));
+    let cur = state.flat[state.flat.length-1];
+    const out=[cur];
+    for(let k=0;k<len;k++){ cur = weightedSample(mixed[cur], rng); out.push(cur); }
+    document.getElementById("contOut").textContent = out.map(i=>LETTERS[i].heb).join("");
+  };
+  document.getElementById("mixSlider").oninput = e=>{ document.getElementById("mixVal").textContent=(+e.target.value).toFixed(2); };
+  document.getElementById("lenSlider").oninput = e=>{ document.getElementById("lenVal").textContent=e.target.value; };
+
+  const MIRROR_FN = {
+    flipX: p=>[-p[0],p[1],p[2]], flipY: p=>[p[0],-p[1],p[2]], flipZ: p=>[p[0],p[1],-p[2]],
+    swapXY: p=>[p[1],p[0],p[2]], swapYZ: p=>[p[0],p[2],p[1]], swapXZ: p=>[p[2],p[1],p[0]],
+    random: p=>{ const perm=PERMS[Math.floor(Math.random()*6)], sign=SIGNS[Math.floor(Math.random()*8)]; return [p[perm[0]]*sign[0],p[perm[1]]*sign[1],p[perm[2]]*sign[2]]; }
+  };
+  document.getElementById("mirrorBtn").onclick = ()=>{
+    const fn = MIRROR_FN[document.getElementById("mirrorSelect").value];
+    const out = state.flat.map(idx=> pointToIdx(fn(idxToPoint(idx))));
+    document.getElementById("mirrorOut").textContent = out.map(i=>LETTERS[i].heb).join("");
+  };
+}
+
+// ---------- TAB 6: SWARM ----------
+function renderSwarmTab(){
+  document.getElementById("swarmEmpty").style.display="none";
+  document.getElementById("swarmPanel").style.display="block";
+  document.getElementById("tempoSlider").oninput = e=>{ document.getElementById("tempoVal").textContent=e.target.value; };
+  document.getElementById("playBtn").onclick = ()=>{
+    sonifier.stop();
+    const tempo = +document.getElementById("tempoSlider").value;
+    const log = document.getElementById("swarmLog"); log.innerHTML="";
+    sonifier.playSequence(state.flat, tempo, (i,idx,layer,freq,wave)=>{
+      const line = document.createElement("div");
+      line.textContent = `${i+1}. ${LETTERS[idx].heb} (${LETTERS[idx].name}) — ${LAYER_LABEL[layer]} · ${freq.toFixed(0)}Hz · ${wave}`;
+      document.querySelectorAll(".logbox div.cur").forEach(d=>d.classList.remove("cur"));
+      line.classList.add("cur");
+      log.appendChild(line);
+      log.scrollTop = log.scrollHeight;
+    }, ()=>{});
+  };
+  document.getElementById("stopBtn").onclick = ()=>{ sonifier.stop(); };
+}
+
+wireCrystalDrag();
+window.addEventListener("resize", ()=>{ if(state.flat.length){ drawMatrix(); drawCrystal(); } });
+
+// ---------- TAB 0: FOUNDATION ----------
+function renderFoundationTab(){
+  document.getElementById("moebiusValidStat").textContent = MOEBIUS_ALL_VALID ? "27 / 27 ✓" : "ROZBIEŻNOŚĆ";
+  document.getElementById("moebiusValidStat").className = "val " + (MOEBIUS_ALL_VALID ? "" : "diff-no");
+  const last = MOEBIUS_VALIDATION[26];
+  document.getElementById("moebiusLastPillar").textContent = last.pillarBlock;
+  const tbody = document.querySelector("#moebiusTable tbody"); tbody.innerHTML="";
+  MOEBIUS_VALIDATION.forEach(v=>{
+    const tr=document.createElement("tr");
+    tr.innerHTML = `<td><span style="color:${v.ok?'var(--green)':'var(--red)'}">${v.ok?'✓':'✗'}</span></td>
+      <td class="heb-cell">${v.heb} <span style="color:var(--muted);font-family:var(--sans);font-size:0.7rem">${v.name}</span></td>
+      <td style="font-family:var(--mono)">[${v.tri.join(',')}]</td>
+      <td style="font-family:var(--mono)">${v.pillarBlock}</td>
+      <td style="font-family:var(--mono);color:var(--muted)">${v.pillarN.join(',')}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+renderFoundationTab();
+
+})();
+</script>
+</body>
+</html>
